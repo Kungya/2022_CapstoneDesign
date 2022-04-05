@@ -4,6 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+/// raycast header
+#include "GameFrameWork/Actor.h"
+#include "Engine/World.h"
+#include "DrawDebugHelpers.h"
+///
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "FPSProjectile.h"
@@ -53,8 +58,11 @@ public:
 	UFUNCTION()
 	void Fire();
 
+	UFUNCTION()
+	void Raycast();
+
 	// FPS Camera
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UCameraComponent* FPSCameraComponent;
 
 	// First-person mesh (arms), visible only to the owning player.

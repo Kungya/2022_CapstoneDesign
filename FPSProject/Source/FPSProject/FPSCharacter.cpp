@@ -80,6 +80,8 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 
 	// "Fire" 바인딩 구성
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
+	// "RayCast" 바인딩 구성
+	PlayerInputComponent->BindAction("Raycast", IE_Pressed, this, &AFPSCharacter::Raycast);
 }
 
 void AFPSCharacter::MoveForward(float Value)
@@ -145,5 +147,25 @@ void AFPSCharacter::Fire()
 				Projectile->FireInDirection(LaunchDirection);
 			}
 		}
+	}
+}
+
+void AFPSCharacter::Raycast()
+{
+	FVector start = FPSCameraComponent->GetComponentLocation();
+	FVector forward = FPSCameraComponent->GetForwardVector();
+	FVector end = start + forward * 3000;
+	FHitResult hit;
+	
+	if (GetWorld())
+	{
+		bool actorHit = GetWorld()->LineTraceSingleByChannel(hit, start, end, ECC_Visibility, FCollisionQueryParams(), FCollisionResponseParams());
+		DrawDebugLine(GetWorld(), start, end, FColor::Red, false, 2.f, 0.f, 10.f);
+		
+		if (actorHit && hit.GetActor())
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, hit.GetActor()->GetFName().ToString());
+		}
+
 	}
 }
