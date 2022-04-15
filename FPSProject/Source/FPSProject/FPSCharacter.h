@@ -31,7 +31,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 	TSubclassOf<class AFPSProjectile> ProjectileClass;
 
-public:	
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
@@ -53,6 +53,9 @@ public:
 	// 키를 떼면 점프 플래그 지움
 	UFUNCTION()
 	void StopJump();
+
+	UFUNCTION()
+	void Sliding();
 
 	// Function that handles firing projectiles. 발사
 	UFUNCTION()

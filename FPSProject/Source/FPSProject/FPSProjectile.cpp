@@ -35,12 +35,12 @@ AFPSProjectile::AFPSProjectile()
 		// Use this component to drive this projectile's movement.
 		ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
 		ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
-		ProjectileMovementComponent->InitialSpeed = 5000.0f;
-		ProjectileMovementComponent->MaxSpeed = 5000.0f;
+		ProjectileMovementComponent->InitialSpeed = 2700.0f;
+		ProjectileMovementComponent->MaxSpeed = 3000.0f;
 		ProjectileMovementComponent->bRotationFollowsVelocity = true;
 		ProjectileMovementComponent->bShouldBounce = true;
-		ProjectileMovementComponent->Bounciness = 0.0f;
-		ProjectileMovementComponent->ProjectileGravityScale = 0.0f;
+		ProjectileMovementComponent->Bounciness = 0.4f;
+		ProjectileMovementComponent->ProjectileGravityScale = 2.5f;
 	}
 
 	if (!ProjectileMeshComponent)
@@ -59,7 +59,7 @@ AFPSProjectile::AFPSProjectile()
 		ProjectileMaterialInstance = UMaterialInstanceDynamic::Create(Material.Object, ProjectileMeshComponent);
 	}
 	ProjectileMeshComponent->SetMaterial(0, ProjectileMaterialInstance);
-	ProjectileMeshComponent->SetRelativeScale3D(FVector(0.03f, 0.03f, 0.03f));
+	ProjectileMeshComponent->SetRelativeScale3D(FVector(0.1f, 0.1f, 0.1f));
 	ProjectileMeshComponent->SetupAttachment(RootComponent);
 
 	// 3초 후 사라짐
@@ -84,14 +84,17 @@ void AFPSProjectile::FireInDirection(const FVector& ShootDirection)
 {
 	ProjectileMovementComponent->Velocity = ShootDirection * ProjectileMovementComponent->InitialSpeed;
 }
+//OnHit
+/*if (OtherActor != this && OtherComponent->IsSimulatingPhysics())
+	{
+		OtherComponent->AddImpulseAtLocation(ProjectileMovementComponent->Velocity * 100.0f, Hit.ImpactPoint);
+	}*/
+
 
 // 발사체가 적중했을 때 이벤트
 void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (OtherActor != this && OtherComponent->IsSimulatingPhysics())
-	{
-		OtherComponent->AddImpulseAtLocation(ProjectileMovementComponent->Velocity * 100.0f, Hit.ImpactPoint);
-	}
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("OnHit Projectile"));
 
 	Destroy();
 }

@@ -77,6 +77,7 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	// "action" 바인딩 구성
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+	PlayerInputComponent->BindAction("Sliding", IE_Pressed, this, &AFPSCharacter::Sliding);
 
 	// "Fire" 바인딩 구성
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
@@ -86,16 +87,18 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 
 void AFPSCharacter::MoveForward(float Value)
 {
-	// 어느 쪽이 'Forward'인지 알아내서, 플레이어가 그 방향으로 이동할 것이라고 기록
-	FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::X);
-	AddMovementInput(Direction, Value);
+	if (Value == 0.f)
+		return;
+
+	AddMovementInput(GetActorForwardVector(), Value);
 }
 
 void AFPSCharacter::MoveRight(float Value)
 {
-	// 어느 쪽이 'Right'인지 알아내서, 플레이어가 그 방향으로 이동할 것이라고 기록
-	FVector Direction = FRotationMatrix(Controller->GetControlRotation()).GetScaledAxis(EAxis::Y);
-	AddMovementInput(Direction, Value);
+	if (Value == 0.f)
+		return;
+
+	AddMovementInput(GetActorRightVector(), Value);
 }
 
 void AFPSCharacter::StartJump()
@@ -106,6 +109,14 @@ void AFPSCharacter::StartJump()
 void AFPSCharacter::StopJump()
 {
 	bPressedJump = false;
+}
+
+void AFPSCharacter::Sliding()
+{	
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Sliding"));
+
+	float SlidingSpeed = 5000.f;
+	LaunchCharacter(GetActorForwardVector() * SlidingSpeed, true, true);
 }
 
 void AFPSCharacter::Fire()
@@ -125,7 +136,7 @@ void AFPSCharacter::Fire()
 		FVector MuzzleLocation = CameraLocation + FTransform(CameraRotation).TransformVector(MuzzleOffset);
 
 		// Skew the aim to be slightly upwards.
-		// 에임을 조금 위로 올려줌 -> 반동 구현 ?
+		// 머즐 위치를 조금 위로 올려줌 -> 에임보다 높게
 		FRotator MuzzleRotation = CameraRotation;
 		MuzzleRotation.Pitch += 10.0f;
 
@@ -134,7 +145,7 @@ void AFPSCharacter::Fire()
 		{
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.Owner = this; // 이 액터를 스폰한 액터(주인) : this (character)
-			SpawnParams.Instigator = GetInstigator(); // 이 발사체를 스폰시켜서 시행된 damage의 책임이 있는 액터?
+			SpawnParams.Instigator = GetInstigator(); // 이 발사체를 스폰시켜서 시행된 damage의 책임이 있는 액터
 
 			// Spawn the projectile at the muzzle.
 			// 총구에서 발사체 스폰
