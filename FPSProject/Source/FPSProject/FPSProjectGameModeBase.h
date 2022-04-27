@@ -15,5 +15,13 @@ class FPSPROJECT_API AFPSProjectGameModeBase : public AGameModeBase
 	GENERATED_BODY()
 
 	virtual void StartPlay() override;
+
+public:
+	AFPSProjectGameModeBase();
+
+	UPROPERTY()
+	TSubclassOf<UUserWidget> HUD_Class;
 	
+	UPROPERTY()
+	UUserWidget* CurrentWidget;
 };

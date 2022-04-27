@@ -12,6 +12,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "FPSProjectile.h"
+#include "Engine/EngineTypes.h" // TimerHandle
 #include "FPSCharacter.generated.h" // 이 header는 항상 마지막에 include 해야함
 
 UCLASS()
@@ -30,6 +31,9 @@ protected:
 	// Projectile class to spawn.
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 	TSubclassOf<class AFPSProjectile> ProjectileClass;
+private:
+	UPROPERTY()
+	bool SlidingTime = true;
 
 public:
 	// Called every frame
@@ -46,23 +50,24 @@ public:
 	UFUNCTION()
 	void MoveRight(float Value);
 
-	// 키를 누르면 점프 플래그 설정
-	UFUNCTION()
-	void StartJump();
-
-	// 키를 떼면 점프 플래그 지움
-	UFUNCTION()
-	void StopJump();
-
 	UFUNCTION()
 	void Sliding();
+
+	UFUNCTION()
+	void SlidingTimer();
 
 	// Function that handles firing projectiles. 발사
 	UFUNCTION()
 	void Fire();
 
 	UFUNCTION()
+	void RefreshUI();
+
+	UFUNCTION()
 	void Raycast();
+
+	UFUNCTION()
+	void Reloading();
 
 	// FPS Camera
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -86,4 +91,10 @@ public:
 	*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 	FVector MuzzleOffset;
+
+	UPROPERTY()
+	FTimerHandle Timer;
+
+	int32 AmmoCount = 5;
+	int32 MaxAmmoCount = 5;
 };

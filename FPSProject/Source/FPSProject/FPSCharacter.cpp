@@ -1,6 +1,11 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 #include "FPSProject.h"
 #include "FPSCharacter.h"
+#include "Kismet/GameplayStatics.h"
+#include "FPSProjectGameModeBase.h"
+#include "FPSCharacterHUD.h"
+#include "Components/TextBlock.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
 AFPSCharacter::AFPSCharacter()
@@ -51,7 +56,8 @@ void AFPSCharacter::BeginPlay()
 		// 5초간 디버그 메시지 표시
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 	}
-	
+
+	RefreshUI();
 }
 
 // Called every frame
@@ -75,14 +81,19 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	PlayerInputComponent->BindAxis("Pitch", this, &AFPSCharacter::AddControllerPitchInput);
 
 	// "action" 바인딩 구성
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
-	PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+	//PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
+	//PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::Jump);
+	
 	PlayerInputComponent->BindAction("Sliding", IE_Pressed, this, &AFPSCharacter::Sliding);
 
 	// "Fire" 바인딩 구성
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
 	// "RayCast" 바인딩 구성
 	PlayerInputComponent->BindAction("Raycast", IE_Pressed, this, &AFPSCharacter::Raycast);
+	// "Relodaing" 바인딩
+	PlayerInputComponent->BindAction("Reloading", IE_Pressed, this, &AFPSCharacter::Reloading);
+
 }
 
 void AFPSCharacter::MoveForward(float Value)
@@ -101,22 +112,35 @@ void AFPSCharacter::MoveRight(float Value)
 	AddMovementInput(GetActorRightVector(), Value);
 }
 
-void AFPSCharacter::StartJump()
-{
-	bPressedJump = true;
-}
-
-void AFPSCharacter::StopJump()
-{
-	bPressedJump = false;
-}
-
 void AFPSCharacter::Sliding()
 {	
+	if (!SlidingTime)
+		return;
+
+	SlidingTime = false;
+
 	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Sliding"));
 
 	float SlidingSpeed = 5000.f;
-	LaunchCharacter(GetActorForwardVector() * SlidingSpeed, true, true);
+
+	if (GetMovementComponent()->IsFalling()) // 공중에서는 마찰이 적어 속도 하향
+		SlidingSpeed = 1500.f;
+
+	if (GetLastMovementInputVector() == FVector::ZeroVector)
+	{
+		LaunchCharacter(GetActorForwardVector() * SlidingSpeed, true, true);
+	}
+	else
+	{
+		LaunchCharacter(GetLastMovementInputVector() * SlidingSpeed, true, true);
+	}
+	// 2초 뒤에 사용할 수 있게 SlidingTime을 true로 설정하는 SlidingTimer 호출
+	GetWorldTimerManager().SetTimer(Timer, this, &AFPSCharacter::SlidingTimer, 2.f, false);
+}
+
+void AFPSCharacter::SlidingTimer()
+{
+	SlidingTime = true;
 }
 
 void AFPSCharacter::Fire()
@@ -161,22 +185,63 @@ void AFPSCharacter::Fire()
 	}
 }
 
+void AFPSCharacter::RefreshUI() // 전역으로 땡겨오는 형식, 이렇게 프레임워크 (매니저)를 만들어두고 떙겨쓰는게 낫다
+{
+	AFPSProjectGameModeBase* GameMode = Cast<AFPSProjectGameModeBase>(UGameplayStatics::GetGameMode(GetWorld()));
+	if (GameMode)
+	{
+		UFPSCharacterHUD* FPSCharacterHUD = Cast<UFPSCharacterHUD>(GameMode->CurrentWidget);
+		if (FPSCharacterHUD)
+		{
+			const FString AmmoStr = FString::Printf(TEXT("Ammo %01d/%01d"), AmmoCount, MaxAmmoCount);
+			FPSCharacterHUD->AmmoText->SetText(FText::FromString(AmmoStr));
+		}
+	}
+}
+
 void AFPSCharacter::Raycast()
 {
+	if (AmmoCount <= 0)
+		return;
+
+	AmmoCount--;
+	RefreshUI();
+
+
 	FVector start = FPSCameraComponent->GetComponentLocation();
 	FVector forward = FPSCameraComponent->GetForwardVector();
 	FVector end = start + forward * 3000;
-	FHitResult hit;
+	FHitResult HitResult;
 	
 	if (GetWorld())
 	{
-		bool actorHit = GetWorld()->LineTraceSingleByChannel(hit, start, end, ECC_Visibility, FCollisionQueryParams(), FCollisionResponseParams());
-		DrawDebugLine(GetWorld(), start, end, FColor::Red, false, 2.f, 0.f, 10.f);
+		bool RayCastResult = GetWorld()->LineTraceSingleByChannel(
+			OUT HitResult,
+			start,
+			end,
+			ECollisionChannel::ECC_Visibility,
+			FCollisionQueryParams(),
+			FCollisionResponseParams()
+		);
+		DrawDebugLine(GetWorld(), start, end, FColor::Red, false, 2.f, 0.f, 5.f);
 		
-		if (actorHit && hit.GetActor())
+		if (RayCastResult && HitResult.Actor.IsValid())
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, hit.GetActor()->GetFName().ToString());
+			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, HitResult.GetActor()->GetFName().ToString());
+
+			FDamageEvent DamageEvent;
+			//HitResult.Actor->TakeDamage(Stat->GetAttack(), DamageEvent, GetController(), this);
 		}
 
 	}
+}
+
+void AFPSCharacter::Reloading()
+{
+	if (AmmoCount == 5)
+		return;
+
+	AmmoCount = 5;
+
+	RefreshUI();
 }
