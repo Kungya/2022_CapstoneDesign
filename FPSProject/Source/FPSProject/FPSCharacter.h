@@ -28,12 +28,24 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	virtual void PostInitializeComponents() override;
+
 	// Projectile class to spawn.
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 	TSubclassOf<class AFPSProjectile> ProjectileClass;
+
 private:
 	UPROPERTY()
 	bool SlidingTime = true;
+
+	UPROPERTY()
+	class UFPSCharacterAnimInstance* AnimInstance;
+
+	UPROPERTY()
+	class UFPSCharacterAnimInstance* AnimInstanceFPP;
+
+	/*UPROPERTY()
+	class UAnimSequence* AnimReloading;*/
 
 public:
 	// Called every frame
@@ -69,6 +81,14 @@ public:
 	UFUNCTION()
 	void Reloading();
 
+	UFUNCTION()
+	void ReloadingCheck();
+
+	UFUNCTION()
+	void OnReloadingMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
 	// FPS Camera
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UCameraComponent* FPSCameraComponent;
@@ -77,24 +97,40 @@ public:
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 	USkeletalMeshComponent* FPSMesh;
 
-	// FPSProejctile Actor 스폰시, OnFire 함수 구현에 있어 두 가지 고려 사항이 있음.
-	// 1) 발사체 스폰 위치
-	// 2) Projectile class (FPSCharacter와 derived Blueprint가 스폰할 발사체를 알게 하기위해)
-	// Gun muzzle offset from the camera location.
-	// 카메라 위치로부터 총구가 얼마나 떨어져 있는지 ? (offset)
-	/*
-	"EditAnywhere" enables you to change the value of the muzzle offset within the Defaults mode 
-	of the Blueprint Editor or within the Details tab for any instance of the character. 
-	
-	The "BlueprintReadWrite" specifier enables you to get and 
-	set the value of the muzzle offset within a Blueprint.
-	*/
+	UPROPERTY()
+	class USoundCue* PistolFireWave;
+
+	UPROPERTY(VisibleAnywhere, Category = Mesh)
+	USkeletalMeshComponent* Weapon;
+
+	UPROPERTY(VisibleAnywhere)
+	class UFPSCharacterStatComponent* Stat;
+
+
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 	FVector MuzzleOffset;
 
 	UPROPERTY()
 	FTimerHandle Timer;
 
-	int32 AmmoCount = 5;
-	int32 MaxAmmoCount = 5;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn)
+	bool IsReloading;
+private:
+
+	int32 CurrAmmo = 6;
+	int32 MaxAmmo = 6;
+	int32 SpareAmmo = 36;
 };
+// FPSProejctile Actor 스폰시, OnFire 함수 구현에 있어 두 가지 고려 사항이 있음.
+	// 1) 발사체 스폰 위치
+	// 2) Projectile class (FPSCharacter와 derived Blueprint가 스폰할 발사체를 알게 하기위해)
+	// Gun muzzle offset from the camera location.
+	// 카메라 위치로부터 총구가 얼마나 떨어져 있는지 ? (offset)
+	/*
+	"EditAnywhere" enables you to change the value of the muzzle offset within the Defaults mode
+	of the Blueprint Editor or within the Details tab for any instance of the character.
+
+	The "BlueprintReadWrite" specifier enables you to get and
+	set the value of the muzzle offset within a Blueprint.
+	*/

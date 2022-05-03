@@ -6,6 +6,7 @@
 #include "Animation/AnimInstance.h"
 #include "FPSCharacterAnimInstance.generated.h"
 
+DECLARE_MULTICAST_DELEGATE(FOnReloading);
 /**
  * 
  */
@@ -19,6 +20,11 @@ public:
 
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
+	void PlayReloadingMontage();
+private:
+	UFUNCTION()
+	void AnimNotify_Reloading();
+
 private:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
@@ -28,10 +34,17 @@ private:
 	bool IsFalling;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
+	UAnimMontage* ReloadingMontage;
+
+	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
+	bool IsReloading;*/
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	float Horizontal;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	float Vertical;
 	
 public:
+	FOnReloading OnReloading;
 };

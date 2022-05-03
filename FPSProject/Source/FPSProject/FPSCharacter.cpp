@@ -1,11 +1,16 @@
 // Fill out your copyright notice in the Description page of Project Settings.
-#include "FPSProject.h"
 #include "FPSCharacter.h"
+#include "FPSProject.h"
+#include "FPSCharacterAnimInstance.h"
+#include "Animation/AnimSequence.h"
+#include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
 #include "FPSProjectGameModeBase.h"
 #include "FPSCharacterHUD.h"
 #include "Components/TextBlock.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "FPSCharacterStatComponent.h"
 
 // Sets default values
 AFPSCharacter::AFPSCharacter()
@@ -22,12 +27,12 @@ AFPSCharacter::AFPSCharacter()
 	FPSCameraComponent->SetupAttachment(GetCapsuleComponent());
 
 	// 카메라 위치를 눈 위쪽으로
-	FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 50.0f + BaseEyeHeight));
+	FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 40.0f + BaseEyeHeight));
 	// Pawn의 카메라 Rotation 제어 허용
 	FPSCameraComponent->bUsePawnControlRotation = true;
 	
 	//-----------------------------------------------------------------------------------------------//
-	
+
 	// Create a first person mesh component for the owning player.
 	FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
 	check(FPSMesh != nullptr);
@@ -42,8 +47,63 @@ AFPSCharacter::AFPSCharacter()
 	FPSMesh->bCastDynamicShadow = false;
 	FPSMesh->CastShadow = false;
 
-	// The owning player doesn't see the regular (third-person) body mesh.
-	GetMesh()->SetOwnerNoSee(true);
+	// 1인칭 SkeletalMesh 추가
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> FPPSM(TEXT("SkeletalMesh'/Game/Assets/HeroFPP.HeroFPP'"));
+	if (FPPSM.Succeeded())
+	{
+		FPSMesh->SetSkeletalMesh(FPPSM.Object);
+	}
+
+	// 3인칭 SkeletalMesh 추가
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> SM(TEXT("SkeletalMesh'/Game/Assets/AnimStarterPack/UE4_Mannequin/Mesh/SK_Mannequin.SK_Mannequin'"));
+	if (SM.Succeeded())
+	{
+		GetMesh()->SetSkeletalMesh(SM.Object);
+		// The owning player doesn't see the regular (third-person) body mesh.
+		GetMesh()->SetOwnerNoSee(false);
+		GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+		GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -78.f));
+	}
+
+	static ConstructorHelpers::FObjectFinder<USoundCue> PistolFireResource(TEXT("SoundCue'/Game/MilitaryWeapSilver/Sound/Pistol/Cues/PistolA_Fire_Cue.PistolA_Fire_Cue'"));
+	PistolFireWave = PistolFireResource.Object;
+	
+	// FPSMesh의 소켓에 무기 장착
+	FName WeaponSocket(TEXT("b_RightWeapon_Socket"));
+	if (FPSMesh->DoesSocketExist(WeaponSocket))
+	{
+		Weapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WEAPON"));
+
+		static ConstructorHelpers::FObjectFinder<USkeletalMesh> SW(TEXT("SkeletalMesh'/Game/MilitaryWeapSilver/Weapons/Assault_Rifle_A.Assault_Rifle_A'"));
+		
+		if (SW.Succeeded())
+		{
+			Weapon->SetSkeletalMesh(SW.Object);
+			Weapon->SetupAttachment(FPSMesh, WeaponSocket);
+			Weapon->SetOnlyOwnerSee(true);
+			Weapon->SetRelativeLocation(FVector(2.f, 10.f, -4.f));
+			Weapon->SetRelativeRotation(FRotator(12.f, 0.f, 10.f));
+		}
+	}
+
+	Stat = CreateDefaultSubobject<UFPSCharacterStatComponent>(TEXT("STAT"));
+
+
+
+	/*FPSWeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonWeaponMesh"));
+	check(FPSWeaponMesh != nullptr);
+
+	FPSWeaponMesh->SetupAttachment(FPSMesh);*/
+
+
+	// Reloading Animation
+	/*static ConstructorHelpers::FObjectFinder<UAnimSequence> anim(TEXT("AnimSequence'/Game/Assets/Animations/FPP_Reloading.FPP_Reloading'"));
+	if (anim.Succeeded())
+	{
+		UE_LOG(LogTemp, Log, TEXT("anim load Succeeded"));
+		AnimReloading = anim.Object;
+	}*/
+
 }
 
 // Called when the game starts or when spawned
@@ -58,6 +118,25 @@ void AFPSCharacter::BeginPlay()
 	}
 
 	RefreshUI();
+}
+
+void AFPSCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	AnimInstance = Cast<UFPSCharacterAnimInstance>(GetMesh()->GetAnimInstance());
+	if (AnimInstance)
+	{
+
+	}
+
+	AnimInstanceFPP = Cast<UFPSCharacterAnimInstance>(FPSMesh->GetAnimInstance());
+	if (AnimInstanceFPP)
+	{// 델리게이트 바인딩 - Reloading
+		AnimInstanceFPP->OnMontageEnded.AddDynamic(this, &AFPSCharacter::OnReloadingMontageEnded);
+		AnimInstanceFPP->OnReloading.AddUObject(this, &AFPSCharacter::ReloadingCheck);
+	}
+
 }
 
 // Called every frame
@@ -193,7 +272,7 @@ void AFPSCharacter::RefreshUI() // 전역으로 땡겨오는 형식, 이렇게 프레임워크 (매
 		UFPSCharacterHUD* FPSCharacterHUD = Cast<UFPSCharacterHUD>(GameMode->CurrentWidget);
 		if (FPSCharacterHUD)
 		{
-			const FString AmmoStr = FString::Printf(TEXT("Ammo %01d/%01d"), AmmoCount, MaxAmmoCount);
+			const FString AmmoStr = FString::Printf(TEXT("Ammo %01d / %01d"), CurrAmmo, SpareAmmo);
 			FPSCharacterHUD->AmmoText->SetText(FText::FromString(AmmoStr));
 		}
 	}
@@ -201,10 +280,12 @@ void AFPSCharacter::RefreshUI() // 전역으로 땡겨오는 형식, 이렇게 프레임워크 (매
 
 void AFPSCharacter::Raycast()
 {
-	if (AmmoCount <= 0)
+	if (CurrAmmo <= 0)
 		return;
 
-	AmmoCount--;
+	UGameplayStatics::PlaySound2D(this, PistolFireWave);
+
+	CurrAmmo--;
 	RefreshUI();
 
 
@@ -230,7 +311,8 @@ void AFPSCharacter::Raycast()
 			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, HitResult.GetActor()->GetFName().ToString());
 
 			FDamageEvent DamageEvent;
-			//HitResult.Actor->TakeDamage(Stat->GetAttack(), DamageEvent, GetController(), this);
+			// this : 내가 공격하는거니까
+			HitResult.Actor->TakeDamage(Stat->GetAttack(), DamageEvent, GetController(), this);
 		}
 
 	}
@@ -238,10 +320,40 @@ void AFPSCharacter::Raycast()
 
 void AFPSCharacter::Reloading()
 {
-	if (AmmoCount == 5)
+	if (SpareAmmo == 0 || CurrAmmo == MaxAmmo || IsReloading)
 		return;
 
-	AmmoCount = 5;
+	AnimInstanceFPP->PlayReloadingMontage();
+	//FPSMesh->PlayAnimation(AnimReloading, false);
+
+	IsReloading = true;
+}
+
+void AFPSCharacter::ReloadingCheck()
+{
+	if (SpareAmmo - (MaxAmmo - CurrAmmo) < 0)
+	{
+		// 3발 여유가 남아있는데 2/6 인 상황, 그러면 +3만 해주어야한다
+		CurrAmmo += SpareAmmo;
+		SpareAmmo = 0;
+	}
+	else
+	{
+		SpareAmmo -= (MaxAmmo - CurrAmmo);
+		CurrAmmo = MaxAmmo;
+	}
 
 	RefreshUI();
+}
+
+void AFPSCharacter::OnReloadingMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	IsReloading = false;
+}
+
+float AFPSCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	Stat->OnAttacked(DamageAmount);
+
+	return DamageAmount;
 }

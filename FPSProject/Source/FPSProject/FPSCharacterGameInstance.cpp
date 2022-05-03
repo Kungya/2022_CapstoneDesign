@@ -6,10 +6,11 @@
 UFPSCharacterGameInstance::UFPSCharacterGameInstance()
 {
 	static ConstructorHelpers::FObjectFinder<UDataTable> DATA(TEXT("DataTable'/Game/Data/StatTable.StatTable'"));
+	
 	if (DATA.Succeeded())
-	{
 		MyStats = DATA.Object;
-	}
+	else
+		UE_LOG(LogTemp, Warning, TEXT("!!!!!"));
 }
 
 void UFPSCharacterGameInstance::Init()

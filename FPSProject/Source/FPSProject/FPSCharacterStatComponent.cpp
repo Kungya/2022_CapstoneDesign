@@ -2,6 +2,8 @@
 
 
 #include "FPSCharacterStatComponent.h"
+#include "FPSCharacterGameInstance.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values for this component's properties
 UFPSCharacterStatComponent::UFPSCharacterStatComponent()
@@ -35,13 +37,30 @@ void UFPSCharacterStatComponent::InitializeComponent()
 
 void UFPSCharacterStatComponent::SetLevel(int32 NewLevel)
 {
-	
+	auto FPSCharacterGameInstance = Cast<UFPSCharacterGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
+
+	if (FPSCharacterGameInstance)
+	{
+		auto StatData = FPSCharacterGameInstance->GetStatData(NewLevel);
+		if (StatData)
+		{
+			NewLevel = StatData->Level;
+			Hp = StatData->MaxHp;
+			Attack = StatData->Attack;
+		}
+	}
 }
 
 void UFPSCharacterStatComponent::SetHp(int32 NewHp)
 {
+
 }
 
 void UFPSCharacterStatComponent::OnAttacked(float DamageAmount)
 {
+	Hp -= DamageAmount;
+	if (Hp < 0)
+		Hp = 0;
+
+	UE_LOG(LogTemp, Warning, TEXT("OnAttacked %d"), Hp);
 }
