@@ -101,11 +101,13 @@ public:
 	class USoundCue* PistolFireWave;
 
 	UPROPERTY(VisibleAnywhere, Category = Mesh)
-	USkeletalMeshComponent* Weapon;
+	USkeletalMeshComponent* FPSWeapon;
 
 	UPROPERTY(VisibleAnywhere)
 	class UFPSCharacterStatComponent* Stat;
 
+	UPROPERTY(VisibleAnywhere)
+	class UWidgetComponent* HpBar;
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)

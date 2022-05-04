@@ -24,6 +24,8 @@ protected:
 
 public:	
 	void SetLevel(int32 NewLevel);
+	/*프로젝트 규모가 커지면 HP가 변경되는 많은 경우가 생기기 때문에 
+	SetHp로만 Hp가 변경되도록 해줘야함*/
 	void SetHp(int32 NewHp);
 	void OnAttacked(float DamageAmount);
 

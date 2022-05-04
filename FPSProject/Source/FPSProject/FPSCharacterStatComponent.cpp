@@ -45,7 +45,8 @@ void UFPSCharacterStatComponent::SetLevel(int32 NewLevel)
 		if (StatData)
 		{
 			NewLevel = StatData->Level;
-			Hp = StatData->MaxHp;
+			SetHp(StatData->MaxHp); // 이렇게 해줘야 델리게이트 호출을 하기 때문에 UI 변경이 됨
+			MaxHp = StatData->MaxHp;
 			Attack = StatData->Attack;
 		}
 	}
@@ -53,14 +54,18 @@ void UFPSCharacterStatComponent::SetLevel(int32 NewLevel)
 
 void UFPSCharacterStatComponent::SetHp(int32 NewHp)
 {
+	Hp = NewHp;
+	if (Hp < 0)
+		Hp = 0;
 
+	// 1) Character에서 추가한 UI를 들고와서 설정해줘도 됨
+	// 2) 종속성을 끊기 위해 Delegate 사용
+	// 전역 싱글톤으로 해도 됨
+	OnHpChanged.Broadcast();
 }
 
 void UFPSCharacterStatComponent::OnAttacked(float DamageAmount)
 {
-	Hp -= DamageAmount;
-	if (Hp < 0)
-		Hp = 0;
-
-	UE_LOG(LogTemp, Warning, TEXT("OnAttacked %d"), Hp);
+	int32 NewHp = Hp - DamageAmount;
+	SetHp(NewHp);
 }

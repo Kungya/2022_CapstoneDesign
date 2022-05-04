@@ -23,7 +23,7 @@ AFPSProjectGameModeBase::AFPSProjectGameModeBase()
 
 
 
-	static ConstructorHelpers::FClassFinder<UFPSCharacterHUD> UI_HUD(TEXT("WidgetBlueprint'/Game/Blueprints/WBP_HUD.WBP_HUD_C'"));
+	static ConstructorHelpers::FClassFinder<UFPSCharacterHUD> UI_HUD(TEXT("WidgetBlueprint'/Game/UI/WBP_HUD.WBP_HUD_C'"));
 	if (UI_HUD.Succeeded())
 	{
 		HUD_Class = UI_HUD.Class;

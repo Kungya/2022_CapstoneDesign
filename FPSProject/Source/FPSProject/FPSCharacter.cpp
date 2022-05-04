@@ -11,6 +11,8 @@
 #include "Components/TextBlock.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "FPSCharacterStatComponent.h"
+#include "Components/WidgetComponent.h"
+#include "FPSCharacterWidget.h"
 
 // Sets default values
 AFPSCharacter::AFPSCharacter()
@@ -60,7 +62,7 @@ AFPSCharacter::AFPSCharacter()
 	{
 		GetMesh()->SetSkeletalMesh(SM.Object);
 		// The owning player doesn't see the regular (third-person) body mesh.
-		GetMesh()->SetOwnerNoSee(false);
+		GetMesh()->SetOwnerNoSee(true);
 		GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
 		GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -78.f));
 	}
@@ -72,38 +74,37 @@ AFPSCharacter::AFPSCharacter()
 	FName WeaponSocket(TEXT("b_RightWeapon_Socket"));
 	if (FPSMesh->DoesSocketExist(WeaponSocket))
 	{
-		Weapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WEAPON"));
+		FPSWeapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WEAPON"));
 
 		static ConstructorHelpers::FObjectFinder<USkeletalMesh> SW(TEXT("SkeletalMesh'/Game/MilitaryWeapSilver/Weapons/Assault_Rifle_A.Assault_Rifle_A'"));
 		
 		if (SW.Succeeded())
 		{
-			Weapon->SetSkeletalMesh(SW.Object);
-			Weapon->SetupAttachment(FPSMesh, WeaponSocket);
-			Weapon->SetOnlyOwnerSee(true);
-			Weapon->SetRelativeLocation(FVector(2.f, 10.f, -4.f));
-			Weapon->SetRelativeRotation(FRotator(12.f, 0.f, 10.f));
+			FPSWeapon->SetSkeletalMesh(SW.Object);
+			FPSWeapon->SetupAttachment(FPSMesh, WeaponSocket);
+			FPSWeapon->SetOnlyOwnerSee(true);
+			FPSWeapon->SetRelativeLocation(FVector(2.f, 10.f, -4.f));
+			FPSWeapon->SetRelativeRotation(FRotator(12.f, 0.f, 10.f));
+			FPSWeapon->bCastDynamicShadow = false;
+			FPSWeapon->CastShadow = false;
 		}
 	}
 
 	Stat = CreateDefaultSubobject<UFPSCharacterStatComponent>(TEXT("STAT"));
 
+	//HpBar Component 생성
+	HpBar = CreateDefaultSubobject<UWidgetComponent>(TEXT("HPBAR"));
+	HpBar->SetupAttachment(GetMesh());
+	HpBar->SetRelativeLocation(FVector(0.f, 0.f, 200.f));
+	HpBar->SetWidgetSpace(EWidgetSpace::Screen);
 
-
-	/*FPSWeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonWeaponMesh"));
-	check(FPSWeaponMesh != nullptr);
-
-	FPSWeaponMesh->SetupAttachment(FPSMesh);*/
-
-
-	// Reloading Animation
-	/*static ConstructorHelpers::FObjectFinder<UAnimSequence> anim(TEXT("AnimSequence'/Game/Assets/Animations/FPP_Reloading.FPP_Reloading'"));
-	if (anim.Succeeded())
+	static ConstructorHelpers::FClassFinder<UUserWidget> UW(TEXT("WidgetBlueprint'/Game/UI/WBP_HpBar.WBP_HpBar_C'"));
+	if (UW.Succeeded())
 	{
-		UE_LOG(LogTemp, Log, TEXT("anim load Succeeded"));
-		AnimReloading = anim.Object;
-	}*/
-
+		HpBar->SetWidgetClass(UW.Class);
+		HpBar->SetDrawSize(FVector2D(200.f, 50.f));
+	}
+	UE_LOG(LogTemp, Warning, TEXT("generated"));
 }
 
 // Called when the game starts or when spawned
@@ -137,6 +138,12 @@ void AFPSCharacter::PostInitializeComponents()
 		AnimInstanceFPP->OnReloading.AddUObject(this, &AFPSCharacter::ReloadingCheck);
 	}
 
+	HpBar->InitWidget();
+
+	// TODO : HpBar Binding, Delegate
+	auto HpWidget = Cast<UFPSCharacterWidget>(HpBar->GetUserWidgetObject());
+	if (HpWidget)
+		HpWidget->BindHp(Stat);
 }
 
 // Called every frame
@@ -300,7 +307,7 @@ void AFPSCharacter::Raycast()
 			OUT HitResult,
 			start,
 			end,
-			ECollisionChannel::ECC_Visibility,
+			ECollisionChannel::ECC_Visibility, // TODO : 채널을 추후에 Visibility 이외에 다른 것으로 변경
 			FCollisionQueryParams(),
 			FCollisionResponseParams()
 		);
