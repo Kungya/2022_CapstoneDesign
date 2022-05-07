@@ -76,7 +76,13 @@ public:
 	void RefreshUI();
 
 	UFUNCTION()
+	void StartRaycast();
+
+	UFUNCTION()
 	void Raycast();
+
+	UFUNCTION()
+	void StopRaycast();
 
 	UFUNCTION()
 	void Reloading();
@@ -116,13 +122,19 @@ public:
 	UPROPERTY()
 	FTimerHandle Timer;
 
+	UPROPERTY()
+	FTimerHandle AutoModeTimer;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn)
+	bool IsRaycasting;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn)
 	bool IsReloading;
 private:
 
-	int32 CurrAmmo = 6;
-	int32 MaxAmmo = 6;
-	int32 SpareAmmo = 36;
+	int32 CurrAmmo = 30;
+	int32 MaxAmmo = 30;
+	int32 SpareAmmo = 120;
 };
 // FPSProejctile Actor 스폰시, OnFire 함수 구현에 있어 두 가지 고려 사항이 있음.
 	// 1) 발사체 스폰 위치

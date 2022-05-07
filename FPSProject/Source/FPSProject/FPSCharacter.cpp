@@ -151,6 +151,8 @@ void AFPSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	
+
 }
 
 // Called to bind functionality to input
@@ -176,7 +178,8 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	// "Fire" 바인딩 구성
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
 	// "RayCast" 바인딩 구성
-	PlayerInputComponent->BindAction("Raycast", IE_Pressed, this, &AFPSCharacter::Raycast);
+	PlayerInputComponent->BindAction("Raycast", IE_Pressed, this, &AFPSCharacter::StartRaycast);
+	PlayerInputComponent->BindAction("Raycast", IE_Released, this, &AFPSCharacter::StopRaycast);
 	// "Relodaing" 바인딩
 	PlayerInputComponent->BindAction("Reloading", IE_Pressed, this, &AFPSCharacter::Reloading);
 
@@ -285,9 +288,15 @@ void AFPSCharacter::RefreshUI() // 전역으로 땡겨오는 형식, 이렇게 프레임워크 (매
 	}
 }
 
+void AFPSCharacter::StartRaycast()
+{
+	IsRaycasting = true;
+	Raycast();
+}
+
 void AFPSCharacter::Raycast()
 {
-	if (CurrAmmo <= 0)
+	if (CurrAmmo <= 0 || !IsRaycasting)
 		return;
 
 	UGameplayStatics::PlaySound2D(this, PistolFireWave);
@@ -311,7 +320,7 @@ void AFPSCharacter::Raycast()
 			FCollisionQueryParams(),
 			FCollisionResponseParams()
 		);
-		DrawDebugLine(GetWorld(), start, end, FColor::Red, false, 2.f, 0.f, 5.f);
+		DrawDebugLine(GetWorld(), start, end, FColor::Red, false, 2.f, 0.f, 1.f);
 		
 		if (RayCastResult && HitResult.Actor.IsValid())
 		{
@@ -323,6 +332,13 @@ void AFPSCharacter::Raycast()
 		}
 
 	}
+	// Recursion
+	GetWorldTimerManager().SetTimer(AutoModeTimer, this, &AFPSCharacter::Raycast, .1f, false);
+}
+
+void AFPSCharacter::StopRaycast()
+{
+	IsRaycasting = false;
 }
 
 void AFPSCharacter::Reloading()
