@@ -20,6 +20,7 @@ public:
 
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
+	UFUNCTION()
 	void PlayReloadingMontage();
 private:
 	UFUNCTION()

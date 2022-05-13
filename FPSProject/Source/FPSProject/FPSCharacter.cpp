@@ -2,7 +2,7 @@
 #include "FPSCharacter.h"
 #include "FPSProject.h"
 #include "FPSCharacterAnimInstance.h"
-#include "Animation/AnimSequence.h"
+#include "FPSWeaponAnimInstance.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
@@ -13,6 +13,7 @@
 #include "FPSCharacterStatComponent.h"
 #include "Components/WidgetComponent.h"
 #include "FPSCharacterWidget.h"
+#include "Math/UnrealMathUtility.h"
 
 // Sets default values
 AFPSCharacter::AFPSCharacter()
@@ -78,6 +79,8 @@ AFPSCharacter::AFPSCharacter()
 
 		static ConstructorHelpers::FObjectFinder<USkeletalMesh> SW(TEXT("SkeletalMesh'/Game/MilitaryWeapSilver/Weapons/Assault_Rifle_A.Assault_Rifle_A'"));
 		
+		check(FPSCameraComponent != nullptr);
+
 		if (SW.Succeeded())
 		{
 			FPSWeapon->SetSkeletalMesh(SW.Object);
@@ -104,7 +107,13 @@ AFPSCharacter::AFPSCharacter()
 		HpBar->SetWidgetClass(UW.Class);
 		HpBar->SetDrawSize(FVector2D(200.f, 50.f));
 	}
-	UE_LOG(LogTemp, Warning, TEXT("generated"));
+
+	//static ConstructorHelpers::FObjectFinder<UCurveVector> CV(TEXT("CurveVector'/Game/Data/AK47_RecoilCurve.AK47_RecoilCurve'"));
+	//if (CV.Succeeded())
+	//{
+	//	RecoilCurve = CV.Object;
+	//	UE_LOG(LogTemp, Warning, TEXT("Succeeded!"));
+	//}
 }
 
 // Called when the game starts or when spawned
@@ -119,6 +128,8 @@ void AFPSCharacter::BeginPlay()
 	}
 
 	RefreshUI();
+
+	//UFPSRecoil* Recoil = NewObject<UFPSRecoil>(this, UFPSRecoil::StaticClass());
 }
 
 void AFPSCharacter::PostInitializeComponents()
@@ -135,7 +146,17 @@ void AFPSCharacter::PostInitializeComponents()
 	if (AnimInstanceFPP)
 	{// 델리게이트 바인딩 - Reloading
 		AnimInstanceFPP->OnMontageEnded.AddDynamic(this, &AFPSCharacter::OnReloadingMontageEnded);
-		AnimInstanceFPP->OnReloading.AddUObject(this, &AFPSCharacter::ReloadingCheck);
+		//AnimInstanceFPP->OnReloading.AddUObject(this, &AFPSCharacter::ReloadingCheck);
+		/*-> 탄창이 다시 장착된 순간에 재장전 기능을 실행하는게 적합하다고 생각하여
+		Weapon 쪽 Notify로 재장전 기능을 실행했기 때문에 현재 사용 안함,*/
+	}
+
+	WeaponAnimInstance = Cast<UFPSWeaponAnimInstance>(FPSWeapon->GetAnimInstance());
+	if (WeaponAnimInstance)
+	{
+		WeaponAnimInstance->OnMontageEnded.AddDynamic(this, &AFPSCharacter::OnFiringMontageEnded);
+		WeaponAnimInstance->OnFiring.AddUObject(this, &AFPSCharacter::Raycast);
+		WeaponAnimInstance->OnWeaponReloading.AddUObject(this, &AFPSCharacter::ReloadingCheck);
 	}
 
 	HpBar->InitWidget();
@@ -151,8 +172,7 @@ void AFPSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	
-
+	//Recoil->RecoilTick(DeltaTime);
 }
 
 // Called to bind functionality to input
@@ -291,17 +311,25 @@ void AFPSCharacter::RefreshUI() // 전역으로 땡겨오는 형식, 이렇게 프레임워크 (매
 void AFPSCharacter::StartRaycast()
 {
 	IsRaycasting = true;
+
+	/*UE_LOG(LogTemp, Warning, TEXT("!"));*/
 	Raycast();
+
+	//Raycast();
+	//Recoil->RecoilStart();
 }
 
 void AFPSCharacter::Raycast()
 {
-	if (CurrAmmo <= 0 || !IsRaycasting)
+	if (CurrAmmo <= 0 || !IsRaycasting || IsReloading)
 		return;
 
-	UGameplayStatics::PlaySound2D(this, PistolFireWave);
+	WeaponAnimInstance->PlayFiringMontage();
 
-	CurrAmmo--;
+	//UGameplayStatics::PlaySound2D(this, PistolFireWave);
+
+
+	--CurrAmmo;
 	RefreshUI();
 
 
@@ -332,21 +360,32 @@ void AFPSCharacter::Raycast()
 		}
 
 	}
+
+	AddControllerPitchInput(FMath::RandRange(0.3f, 0.6f) * -1);
+	AddControllerYawInput(FMath::RandRange(-0.1f, 0.1f));
+
+	/*
+	TODO : 반동... -3x^@
+	*/
 	// Recursion
-	GetWorldTimerManager().SetTimer(AutoModeTimer, this, &AFPSCharacter::Raycast, .1f, false);
+
+	GetWorldTimerManager().SetTimer(AutoModeTimer, this, &AFPSCharacter::Raycast, .12f, false);
 }
 
 void AFPSCharacter::StopRaycast()
 {
+	//Recoil->RecoilStop();
 	IsRaycasting = false;
 }
 
 void AFPSCharacter::Reloading()
 {
-	if (SpareAmmo == 0 || CurrAmmo == MaxAmmo || IsReloading)
+	if (SpareAmmo == 0 || CurrAmmo == MaxAmmo || IsReloading || IsRaycasting)
 		return;
+	// TODO : IsReloading을 조절해주는 StartReloading, StopReloaidng... 설정
 
 	AnimInstanceFPP->PlayReloadingMontage();
+	WeaponAnimInstance->PlayWeaponReloadingMontage();
 	//FPSMesh->PlayAnimation(AnimReloading, false);
 
 	IsReloading = true;
@@ -374,9 +413,24 @@ void AFPSCharacter::OnReloadingMontageEnded(UAnimMontage* Montage, bool bInterru
 	IsReloading = false;
 }
 
+void AFPSCharacter::OnFiringMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+
+}
+
 float AFPSCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	Stat->OnAttacked(DamageAmount);
 
 	return DamageAmount;
+}
+
+bool AFPSCharacter::GetIsRaycasting()
+{
+	return IsRaycasting;
+}
+
+bool AFPSCharacter::GetIsReloading()
+{
+	return IsReloading;
 }

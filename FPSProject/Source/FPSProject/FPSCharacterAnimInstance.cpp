@@ -45,4 +45,3 @@ void UFPSCharacterAnimInstance::AnimNotify_Reloading()
 	UE_LOG(LogTemp, Log, TEXT("AnimNotify_Reloading!!"));
 	OnReloading.Broadcast();
 }
-

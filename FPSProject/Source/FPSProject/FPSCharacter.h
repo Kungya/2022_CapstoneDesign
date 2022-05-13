@@ -13,6 +13,15 @@
 #include "Components/CapsuleComponent.h"
 #include "FPSProjectile.h"
 #include "Engine/EngineTypes.h" // TimerHandle
+#include "FPSRecoil.h"
+//
+#include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/KismetStringLibrary.h"
+#include "Math/UnrealMathUtility.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Curves/CurveVector.h"
+#include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
+//
 #include "FPSCharacter.generated.h" // 이 header는 항상 마지막에 include 해야함
 
 UCLASS()
@@ -24,6 +33,14 @@ public:
 	// Sets default values for this character's properties
 	AFPSCharacter();
 
+	///*UFPSRecoil* RecoilSys;*/
+	//UPROPERTY()
+	//UCurveVector* RecoilCurve;
+
+	//UPROPERTY()
+	//UFPSRecoil* Recoil;
+
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -34,6 +51,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 	TSubclassOf<class AFPSProjectile> ProjectileClass;
 
+	//UPROPERTY()
+	//TSubclassOf<class UFPSRecoil> RecoilClass;
+
 private:
 	UPROPERTY()
 	bool SlidingTime = true;
@@ -43,6 +63,9 @@ private:
 
 	UPROPERTY()
 	class UFPSCharacterAnimInstance* AnimInstanceFPP;
+
+	UPROPERTY()
+	class UFPSWeaponAnimInstance* WeaponAnimInstance;
 
 	/*UPROPERTY()
 	class UAnimSequence* AnimReloading;*/
@@ -93,6 +116,9 @@ public:
 	UFUNCTION()
 	void OnReloadingMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
+	UFUNCTION()
+	void OnFiringMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 	// FPS Camera
@@ -130,6 +156,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn)
 	bool IsReloading;
+
+	UFUNCTION()
+	bool GetIsRaycasting();
+
+	UFUNCTION()
+	bool GetIsReloading();
 private:
 
 	int32 CurrAmmo = 30;
