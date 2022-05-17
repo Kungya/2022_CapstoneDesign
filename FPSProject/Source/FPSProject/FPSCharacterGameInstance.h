@@ -20,6 +20,9 @@ struct FFPSCharacterData : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 MaxHp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MaxMp;
 };
 
 /**

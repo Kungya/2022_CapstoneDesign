@@ -2,4 +2,5 @@
 
 
 #include "FPSCharacterHUD.h"
-
+#include "FPSCharacterStatComponent.h"
+#include "Components/ProgressBar.h"

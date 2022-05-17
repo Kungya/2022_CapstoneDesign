@@ -96,7 +96,10 @@ public:
 	void Fire();
 
 	UFUNCTION()
-	void RefreshUI();
+	void RefreshAmmoUI();
+
+	UFUNCTION()
+	void RefreshStatUI();
 
 	UFUNCTION()
 	void StartRaycast();
@@ -112,6 +115,9 @@ public:
 
 	UFUNCTION()
 	void ReloadingCheck();
+
+	UFUNCTION()
+	void DecreaseHp();
 
 	UFUNCTION()
 	void OnReloadingMontageEnded(UAnimMontage* Montage, bool bInterrupted);

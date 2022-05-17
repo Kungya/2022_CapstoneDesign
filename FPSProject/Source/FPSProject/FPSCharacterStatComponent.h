@@ -7,6 +7,7 @@
 #include "FPSCharacterStatComponent.generated.h"
 
 DECLARE_MULTICAST_DELEGATE(FOnHpChanged);
+DECLARE_MULTICAST_DELEGATE(FOnMpChanged);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class FPSPROJECT_API UFPSCharacterStatComponent : public UActorComponent
@@ -27,12 +28,15 @@ public:
 	/*프로젝트 규모가 커지면 HP가 변경되는 많은 경우가 생기기 때문에 
 	SetHp로만 Hp가 변경되도록 해줘야함*/
 	void SetHp(int32 NewHp);
+	void SetMp(int32 NewMp);
 	void OnAttacked(float DamageAmount);
+	bool OnSkill(float MpAmount);
 
 	int32 GetLevel() { return Level; }
 	int32 GetHp() { return Hp; }
 	int32 GetMaxHp() { return MaxHp; }
 	float GetHpRatio() { return Hp / (float)MaxHp; }
+	float GetMpRatio() { return Mp / (float)MaxMp; }
 	int32 GetAttack() { return Attack; }
 
 private:
@@ -49,6 +53,13 @@ private:
 	UPROPERTY(EditAnywhere, Category = Stat, Meta = (AllowPrivateAccess = true))
 	int32 Attack;
 
+	UPROPERTY(EditAnywhere, Category = Stat, Meta = (AllowPrivateAccess = true))
+	int32 Mp;
+
+	UPROPERTY(EditAnywhere, Category = Stat, Meta = (AllowPrivateAccess = true))
+	int32 MaxMp;
+
 public:
 	FOnHpChanged OnHpChanged;
+	FOnMpChanged OnMpChanged;
 };

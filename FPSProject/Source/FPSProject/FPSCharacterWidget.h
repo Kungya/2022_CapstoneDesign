@@ -18,6 +18,7 @@ public:
 	void BindHp(class UFPSCharacterStatComponent* StatComp);
 
 	void UpdateHp();
+
 private:
 	TWeakObjectPtr<class UFPSCharacterStatComponent> CurrentStatComp;
 

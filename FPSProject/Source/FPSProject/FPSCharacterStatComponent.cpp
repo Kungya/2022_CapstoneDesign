@@ -47,6 +47,8 @@ void UFPSCharacterStatComponent::SetLevel(int32 NewLevel)
 			NewLevel = StatData->Level;
 			SetHp(StatData->MaxHp); // 이렇게 해줘야 델리게이트 호출을 하기 때문에 UI 변경이 됨
 			MaxHp = StatData->MaxHp;
+			SetMp(StatData->MaxMp);
+			MaxMp = StatData->MaxMp;
 			Attack = StatData->Attack;
 		}
 	}
@@ -64,8 +66,32 @@ void UFPSCharacterStatComponent::SetHp(int32 NewHp)
 	OnHpChanged.Broadcast();
 }
 
+void UFPSCharacterStatComponent::SetMp(int32 NewMp)
+{
+	Mp = NewMp;
+	if (Mp < 0)
+		Mp = 0;
+
+}
+
 void UFPSCharacterStatComponent::OnAttacked(float DamageAmount)
 {
 	int32 NewHp = Hp - DamageAmount;
 	SetHp(NewHp);
+}
+
+bool UFPSCharacterStatComponent::OnSkill(float MpAmount)
+{
+	int32 NewMp = Mp - MpAmount;
+
+	if (NewMp < 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Mp !"));
+		// TODO : Mp 부족 경고음
+		return true;
+	}
+
+	SetMp(NewMp);
+
+	return 0;
 }

@@ -13,6 +13,7 @@
 #include "FPSCharacterStatComponent.h"
 #include "Components/WidgetComponent.h"
 #include "FPSCharacterWidget.h"
+#include "Components/ProgressBar.h"
 #include "Math/UnrealMathUtility.h"
 
 // Sets default values
@@ -107,13 +108,6 @@ AFPSCharacter::AFPSCharacter()
 		HpBar->SetWidgetClass(UW.Class);
 		HpBar->SetDrawSize(FVector2D(200.f, 50.f));
 	}
-
-	//static ConstructorHelpers::FObjectFinder<UCurveVector> CV(TEXT("CurveVector'/Game/Data/AK47_RecoilCurve.AK47_RecoilCurve'"));
-	//if (CV.Succeeded())
-	//{
-	//	RecoilCurve = CV.Object;
-	//	UE_LOG(LogTemp, Warning, TEXT("Succeeded!"));
-	//}
 }
 
 // Called when the game starts or when spawned
@@ -127,7 +121,8 @@ void AFPSCharacter::BeginPlay()
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 	}
 
-	RefreshUI();
+	RefreshAmmoUI();
+	RefreshStatUI();
 
 	//UFPSRecoil* Recoil = NewObject<UFPSRecoil>(this, UFPSRecoil::StaticClass());
 }
@@ -165,6 +160,8 @@ void AFPSCharacter::PostInitializeComponents()
 	auto HpWidget = Cast<UFPSCharacterWidget>(HpBar->GetUserWidgetObject());
 	if (HpWidget)
 		HpWidget->BindHp(Stat);
+
+	// TODO : 2DHpBar, 2DMpBar Binding, Delegate
 }
 
 // Called every frame
@@ -202,6 +199,8 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	PlayerInputComponent->BindAction("Raycast", IE_Released, this, &AFPSCharacter::StopRaycast);
 	// "Relodaing" 바인딩
 	PlayerInputComponent->BindAction("Reloading", IE_Pressed, this, &AFPSCharacter::Reloading);
+	// 실험용, HP감소
+	PlayerInputComponent->BindAction("DecreaseHp", IE_Pressed, this, &AFPSCharacter::DecreaseHp);
 
 }
 
@@ -226,14 +225,20 @@ void AFPSCharacter::Sliding()
 	if (!SlidingTime)
 		return;
 
+	// Mp 소모량 : 20, Mp가 부족하면 1을 리턴하여 스킬 종료
+	if (Stat->OnSkill(20))
+		return;
+
+	RefreshStatUI();
+
 	SlidingTime = false;
 
 	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Sliding"));
 
-	float SlidingSpeed = 5000.f;
+	float SlidingSpeed = 10000.f;
 
 	if (GetMovementComponent()->IsFalling()) // 공중에서는 마찰이 적어 속도 하향
-		SlidingSpeed = 1500.f;
+		SlidingSpeed = 3000.f;
 
 	if (GetLastMovementInputVector() == FVector::ZeroVector)
 	{
@@ -294,7 +299,7 @@ void AFPSCharacter::Fire()
 	}
 }
 
-void AFPSCharacter::RefreshUI() // 전역으로 땡겨오는 형식, 이렇게 프레임워크 (매니저)를 만들어두고 떙겨쓰는게 낫다
+void AFPSCharacter::RefreshAmmoUI() // 전역으로 땡겨오는 형식, 이렇게 프레임워크 (매니저)를 만들어두고 떙겨쓰는게 낫다
 {
 	AFPSProjectGameModeBase* GameMode = Cast<AFPSProjectGameModeBase>(UGameplayStatics::GetGameMode(GetWorld()));
 	if (GameMode)
@@ -304,6 +309,20 @@ void AFPSCharacter::RefreshUI() // 전역으로 땡겨오는 형식, 이렇게 프레임워크 (매
 		{
 			const FString AmmoStr = FString::Printf(TEXT("Ammo %01d / %01d"), CurrAmmo, SpareAmmo);
 			FPSCharacterHUD->AmmoText->SetText(FText::FromString(AmmoStr));
+		}
+	}
+}
+
+void AFPSCharacter::RefreshStatUI()
+{ // TODO : 멀티 환경시 상대의 체력이 Refresh 됨 -> 몹 AI 구현완료되면 디버깅 예정
+	AFPSProjectGameModeBase* GameMode = Cast<AFPSProjectGameModeBase>(UGameplayStatics::GetGameMode(GetWorld()));
+	if (GameMode)
+	{
+		UFPSCharacterHUD* FPSCharacterHUD = Cast<UFPSCharacterHUD>(GameMode->CurrentWidget);
+		if (FPSCharacterHUD)
+		{
+			FPSCharacterHUD->PB_2DHpBar->SetPercent(Stat->GetHpRatio());
+			FPSCharacterHUD->PB_2DMpBar->SetPercent(Stat->GetMpRatio());
 		}
 	}
 }
@@ -330,7 +349,7 @@ void AFPSCharacter::Raycast()
 
 
 	--CurrAmmo;
-	RefreshUI();
+	RefreshAmmoUI();
 
 
 	FVector start = FPSCameraComponent->GetComponentLocation();
@@ -361,6 +380,8 @@ void AFPSCharacter::Raycast()
 
 	}
 
+
+	// Recoil, TODO : Using Vector Curve, Interp
 	AddControllerPitchInput(FMath::RandRange(0.3f, 0.6f) * -1);
 	AddControllerYawInput(FMath::RandRange(-0.1f, 0.1f));
 
@@ -405,7 +426,13 @@ void AFPSCharacter::ReloadingCheck()
 		CurrAmmo = MaxAmmo;
 	}
 
-	RefreshUI();
+	RefreshAmmoUI();
+}
+
+void AFPSCharacter::DecreaseHp()
+{
+	FDamageEvent DamageEvent2;
+	this->TakeDamage(100, DamageEvent2, GetController(), this);
 }
 
 void AFPSCharacter::OnReloadingMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -421,6 +448,7 @@ void AFPSCharacter::OnFiringMontageEnded(UAnimMontage* Montage, bool bInterrupte
 float AFPSCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	Stat->OnAttacked(DamageAmount);
+	RefreshStatUI();
 
 	return DamageAmount;
 }
