@@ -68,9 +68,6 @@ AFPSCharacter::AFPSCharacter()
 		GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
 		GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -78.f));
 	}
-
-	static ConstructorHelpers::FObjectFinder<USoundCue> PistolFireResource(TEXT("SoundCue'/Game/MilitaryWeapSilver/Sound/Pistol/Cues/PistolA_Fire_Cue.PistolA_Fire_Cue'"));
-	PistolFireWave = PistolFireResource.Object;
 	
 	// FPSMesh의 소켓에 무기 장착
 	FName WeaponSocket(TEXT("b_RightWeapon_Socket"));
@@ -93,6 +90,15 @@ AFPSCharacter::AFPSCharacter()
 			FPSWeapon->CastShadow = false;
 		}
 	}
+
+	// 미니맵 추적용 SpringArm + SceneCapture
+	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SPRINGARM"));
+	SpringArm->TargetArmLength = 300.f;
+	SpringArm->SetRelativeRotation(FRotator(-90.f, 0.f, 0.f));
+	
+	MiniMapCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("MINIMAPCAPTURE"));
+	MiniMapCapture->SetupAttachment(SpringArm);
+	
 
 	Stat = CreateDefaultSubobject<UFPSCharacterStatComponent>(TEXT("STAT"));
 
@@ -118,7 +124,7 @@ void AFPSCharacter::BeginPlay()
 	if (GEngine)
 	{
 		// 5초간 디버그 메시지 표시
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("We are using FPSCharacter."));
 	}
 
 	RefreshAmmoUI();
@@ -233,12 +239,10 @@ void AFPSCharacter::Sliding()
 
 	SlidingTime = false;
 
-	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Sliding"));
-
-	float SlidingSpeed = 10000.f;
+	float SlidingSpeed = 5000.f;
 
 	if (GetMovementComponent()->IsFalling()) // 공중에서는 마찰이 적어 속도 하향
-		SlidingSpeed = 3000.f;
+		SlidingSpeed = 2000.f;
 
 	if (GetLastMovementInputVector() == FVector::ZeroVector)
 	{
@@ -299,7 +303,7 @@ void AFPSCharacter::Fire()
 	}
 }
 
-void AFPSCharacter::RefreshAmmoUI() // 전역으로 땡겨오는 형식, 이렇게 프레임워크 (매니저)를 만들어두고 떙겨쓰는게 낫다
+void AFPSCharacter::RefreshAmmoUI() // 전역으로 땡겨오는 형식, 이렇게 프레임워크 (매니저)를 만들어두고 땡겨쓰는게 낫다
 {
 	AFPSProjectGameModeBase* GameMode = Cast<AFPSProjectGameModeBase>(UGameplayStatics::GetGameMode(GetWorld()));
 	if (GameMode)
@@ -331,11 +335,7 @@ void AFPSCharacter::StartRaycast()
 {
 	IsRaycasting = true;
 
-	/*UE_LOG(LogTemp, Warning, TEXT("!"));*/
 	Raycast();
-
-	//Raycast();
-	//Recoil->RecoilStart();
 }
 
 void AFPSCharacter::Raycast()
@@ -344,9 +344,6 @@ void AFPSCharacter::Raycast()
 		return;
 
 	WeaponAnimInstance->PlayFiringMontage();
-
-	//UGameplayStatics::PlaySound2D(this, PistolFireWave);
-
 
 	--CurrAmmo;
 	RefreshAmmoUI();
@@ -367,11 +364,11 @@ void AFPSCharacter::Raycast()
 			FCollisionQueryParams(),
 			FCollisionResponseParams()
 		);
-		DrawDebugLine(GetWorld(), start, end, FColor::Red, false, 2.f, 0.f, 1.f);
+		//DrawDebugLine(GetWorld(), start, end, FColor::Red, false, 2.f, 0.f, 1.f);
 		
 		if (RayCastResult && HitResult.Actor.IsValid())
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, HitResult.GetActor()->GetFName().ToString());
+			//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, HitResult.GetActor()->GetFName().ToString());
 
 			FDamageEvent DamageEvent;
 			// this : 내가 공격하는거니까
@@ -404,12 +401,11 @@ void AFPSCharacter::Reloading()
 	if (SpareAmmo == 0 || CurrAmmo == MaxAmmo || IsReloading || IsRaycasting)
 		return;
 	// TODO : IsReloading을 조절해주는 StartReloading, StopReloaidng... 설정
+	IsReloading = true;
 
 	AnimInstanceFPP->PlayReloadingMontage();
 	WeaponAnimInstance->PlayWeaponReloadingMontage();
 	//FPSMesh->PlayAnimation(AnimReloading, false);
-
-	IsReloading = true;
 }
 
 void AFPSCharacter::ReloadingCheck()
@@ -427,6 +423,7 @@ void AFPSCharacter::ReloadingCheck()
 	}
 
 	RefreshAmmoUI();
+	IsReloading = false;
 }
 
 void AFPSCharacter::DecreaseHp()
@@ -437,7 +434,7 @@ void AFPSCharacter::DecreaseHp()
 
 void AFPSCharacter::OnReloadingMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	IsReloading = false;
+
 }
 
 void AFPSCharacter::OnFiringMontageEnded(UAnimMontage* Montage, bool bInterrupted)

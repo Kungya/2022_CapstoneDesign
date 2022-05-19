@@ -22,6 +22,8 @@
 #include "Curves/CurveVector.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 //
+#include "GameFramework/SpringArmComponent.h"
+#include "Components/SceneCaptureComponent2D.h"
 #include "FPSCharacter.generated.h" // 이 header는 항상 마지막에 include 해야함
 
 UCLASS()
@@ -135,11 +137,14 @@ public:
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 	USkeletalMeshComponent* FPSMesh;
 
-	UPROPERTY()
-	class USoundCue* PistolFireWave;
-
 	UPROPERTY(VisibleAnywhere, Category = Mesh)
 	USkeletalMeshComponent* FPSWeapon;
+
+	UPROPERTY(EditAnywhere)
+	USpringArmComponent* SpringArm;
+
+	UPROPERTY(EditAnywhere)
+	USceneCaptureComponent2D* MiniMapCapture;
 
 	UPROPERTY(VisibleAnywhere)
 	class UFPSCharacterStatComponent* Stat;

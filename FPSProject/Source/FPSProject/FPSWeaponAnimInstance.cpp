@@ -14,7 +14,6 @@ UFPSWeaponAnimInstance::UFPSWeaponAnimInstance()
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> ARM(TEXT("AnimMontage'/Game/Assets/Animations/Rifle_Reload_Montage.Rifle_Reload_Montage'"));
 	if (ARM.Succeeded())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ConstructorHelpers!!"));
 		WeaponReloadingMontage = ARM.Object;
 	}
 }
