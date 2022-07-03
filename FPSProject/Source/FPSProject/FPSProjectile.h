@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/SphereComponent.h"
+#include "GrenadeExplosion.h"
 #include "FPSProjectile.generated.h"
 
 UCLASS()
@@ -42,6 +43,16 @@ public:
 	// Projectile Mesh 발사체 스킨
 	UPROPERTY(VisibleDefaultsOnly, Category = Projectile)
 	UStaticMeshComponent* ProjectileMeshComponent;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class AGrenadeExplosion> ExplosionClass;
+
+	UPROPERTY()
+	FTimerHandle ExplosionTimer;
+
+public:
+	UFUNCTION()
+	void Detonate();
 
 	// Function that is called when the projectile hits something.
 	UFUNCTION()

@@ -64,6 +64,12 @@ AFPSProjectile::AFPSProjectile()
 
 	// 3초 후 사라짐
 	InitialLifeSpan = 3.0f;
+
+	/*static ConstructorHelpers::FClassFinder<AActor> Explosion(TEXT("Blueprint'/Game/Assets/Explosion.Explosion_C'"));
+	if (Explosion.Succeeded())
+	{
+		ExplosionActor = Cast<AActor>(Explosion.Class);
+	}*/
 }
 
 // Called when the game starts or when spawned
@@ -71,6 +77,7 @@ void AFPSProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	GetWorldTimerManager().SetTimer(ExplosionTimer, this, &AFPSProjectile::Detonate, 2.95f, false);
 }
 
 // Called every frame
@@ -91,10 +98,46 @@ void AFPSProjectile::FireInDirection(const FVector& ShootDirection)
 	}*/
 
 
+void AFPSProjectile::Detonate()
+{
+	UWorld* World = GetWorld();
+
+	/*FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.Instigator = GetInstigator();*/
+
+	if (World)
+	{
+		UE_LOG(LogTemp, Log, TEXT("!!!"));
+		AGrenadeExplosion* GrenadeExplosion = World->SpawnActor<AGrenadeExplosion>(AGrenadeExplosion::StaticClass(), GetActorTransform());
+		Destroy();
+	}
+}
+
 // 발사체가 적중했을 때 이벤트
 void AFPSProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("OnHit Projectile"));
+	//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("OnHit Projectile"));
+	
 
-	Destroy();
+	/*if (ExplosionClass)
+	{
+		UE_LOG(LogTemp, Log, TEXT("BO"));
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			FActorSpawnParameters SpawnParamsGrenade;
+			SpawnParamsGrenade.Owner = this;
+			SpawnParamsGrenade.Instigator = GetInstigator();
+
+			World->SpawnActor<AGrenadeExplosion>(ExplosionClass, GetActorTransform(), SpawnParamsGrenade);
+			UE_LOG(LogTemp, Log, TEXT("BOOM"));
+		}
+	}
+	else
+	{
+
+	}*/
+
+	//Destroy();
 }

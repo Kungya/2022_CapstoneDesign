@@ -91,13 +91,13 @@ AFPSCharacter::AFPSCharacter()
 		}
 	}
 
-	// 미니맵 추적용 SpringArm + SceneCapture
-	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SPRINGARM"));
-	SpringArm->TargetArmLength = 300.f;
-	SpringArm->SetRelativeRotation(FRotator(-90.f, 0.f, 0.f));
-	
-	MiniMapCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("MINIMAPCAPTURE"));
-	MiniMapCapture->SetupAttachment(SpringArm);
+	//// 미니맵 추적용 SpringArm + SceneCapture 에러로 블루프린트 상태에서 컴포넌트 추가로 대체중
+	//SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SPRINGARM"));
+	//SpringArm->TargetArmLength = 300.f;
+	//SpringArm->SetRelativeRotation(FRotator(-90.f, 0.f, 0.f));
+	//
+	//MiniMapCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("MINIMAPCAPTURE"));
+	//MiniMapCapture->SetupAttachment(SpringArm);
 	
 
 	Stat = CreateDefaultSubobject<UFPSCharacterStatComponent>(TEXT("STAT"));
