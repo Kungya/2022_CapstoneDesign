@@ -108,7 +108,6 @@ void AFPSProjectile::Detonate()
 
 	if (World)
 	{
-		UE_LOG(LogTemp, Log, TEXT("!!!"));
 		AGrenadeExplosion* GrenadeExplosion = World->SpawnActor<AGrenadeExplosion>(AGrenadeExplosion::StaticClass(), GetActorTransform());
 		Destroy();
 	}

@@ -9,9 +9,14 @@ AGrenadeExplosion::AGrenadeExplosion()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
-	RadialForce = CreateDefaultSubobject<URadialForceComponent>(TEXT("RadialForceComponent"));
+	Root = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	Particle = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ParticleSystemComponent"));
+	RadialForce = CreateDefaultSubobject<URadialForceComponent>(TEXT("RadialForceComponent"));
+	SetRootComponent(Root);
 
+	Particle->SetupAttachment(Root);
+	RadialForce->SetupAttachment(Root);
+	 
 	static ConstructorHelpers::FObjectFinder<UParticleSystem> PS(TEXT("ParticleSystem'/Game/StarterContent/Particles/P_Explosion.P_Explosion'"));
 	if (PS.Succeeded())
 	{
@@ -19,7 +24,7 @@ AGrenadeExplosion::AGrenadeExplosion()
 	}
 
 	RadialForce->Radius = 1000.f;
-	RadialForce->ImpulseStrength = 300000.f;
+	RadialForce->ImpulseStrength = 30000.f;
 	RadialForce->ForceStrength = 1000.f;
 
 	//InitialLifeSpan = 3.f;
@@ -28,8 +33,8 @@ AGrenadeExplosion::AGrenadeExplosion()
 // Called when the game starts or when spawned
 void AGrenadeExplosion::BeginPlay()
 {
-	Super::BeginPlay(); 
+	Super::BeginPlay();
 
 	RadialForce->FireImpulse();
 	SetLifeSpan(3.f);
-}
+} 

@@ -22,10 +22,13 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere)
+	USceneComponent* Root;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	URadialForceComponent* RadialForce;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UParticleSystemComponent* Particle;
 	
 
