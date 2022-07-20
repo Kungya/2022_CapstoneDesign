@@ -370,9 +370,10 @@ void AFPSCharacter::Raycast()
 		{
 			//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, HitResult.GetActor()->GetFName().ToString());
 
-			FDamageEvent DamageEvent;
+			// 총알 개념이므로 FPointDamageEvent
+			FPointDamageEvent PointDamageEvent;
 			// this : 내가 공격하는거니까
-			HitResult.Actor->TakeDamage(Stat->GetAttack(), DamageEvent, GetController(), this);
+			HitResult.Actor->TakeDamage(Stat->GetAttack(), PointDamageEvent, GetController(), this);
 		}
 
 	}

@@ -57,4 +57,18 @@ public:
 	// Function that is called when the projectile hits something.
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, FVector NormalImpulse, const FHitResult& Hit);
+
+protected:
+	UPROPERTY(EditDefaultsOnly)
+	float GrenadeBaseDamage = 90.f;
+
+	UPROPERTY(EditDefaultsOnly)
+	float GrenadeRadius = 500.f;
+
+	UPROPERTY(VisibleAnywhere)
+	USoundBase* ExplosionSound;
+
+	UPROPERTY(VisibleAnywhere)
+	USoundAttenuation* ExplosionAttenuation;
+
 };

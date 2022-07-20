@@ -23,7 +23,7 @@ void UFPSCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	if (IsValid(Pawn))
 	{
 		Speed = Pawn->GetVelocity().Size();
-
+		
 		auto Character = Cast<AFPSCharacter>(Pawn);
 		if (Character)
 		{

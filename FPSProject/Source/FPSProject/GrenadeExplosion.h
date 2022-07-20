@@ -28,7 +28,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	URadialForceComponent* RadialForce;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = FX)
 	UParticleSystemComponent* Particle;
 	
 

@@ -2,6 +2,7 @@
 
 
 #include "FPSProjectile.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AFPSProjectile::AFPSProjectile()
@@ -35,11 +36,11 @@ AFPSProjectile::AFPSProjectile()
 		// Use this component to drive this projectile's movement.
 		ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
 		ProjectileMovementComponent->SetUpdatedComponent(CollisionComponent);
-		ProjectileMovementComponent->InitialSpeed = 2700.0f;
+		ProjectileMovementComponent->InitialSpeed = 1900.0f;
 		ProjectileMovementComponent->MaxSpeed = 3000.0f;
 		ProjectileMovementComponent->bRotationFollowsVelocity = true;
 		ProjectileMovementComponent->bShouldBounce = true;
-		ProjectileMovementComponent->Bounciness = 0.4f;
+		ProjectileMovementComponent->Bounciness = 0.2f;
 		ProjectileMovementComponent->ProjectileGravityScale = 2.5f;
 	}
 
@@ -62,8 +63,20 @@ AFPSProjectile::AFPSProjectile()
 	ProjectileMeshComponent->SetRelativeScale3D(FVector(0.1f, 0.1f, 0.1f));
 	ProjectileMeshComponent->SetupAttachment(RootComponent);
 
-	// 3ÃÊ ÈÄ »ç¶óÁü
-	InitialLifeSpan = 3.0f;
+	// 2ÃÊ ÈÄ »ç¶óÁü
+	InitialLifeSpan = 2.0f;
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> SB(TEXT("SoundWave'/Game/MilitaryWeapSilver/Sound/GrenadeLauncher/Wavs/GrenadeLauncher_Explosion01.GrenadeLauncher_Explosion01'"));
+	if (SB.Succeeded())
+	{
+		ExplosionSound = SB.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<USoundAttenuation> SA(TEXT("SoundAttenuation'/Game/Assets/GrenadeAttenuation.GrenadeAttenuation'"));
+	if (SA.Succeeded())
+	{
+		ExplosionAttenuation = SA.Object;
+	}
 
 	/*static ConstructorHelpers::FClassFinder<AActor> Explosion(TEXT("Blueprint'/Game/Assets/Explosion.Explosion_C'"));
 	if (Explosion.Succeeded())
@@ -77,7 +90,7 @@ void AFPSProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	GetWorldTimerManager().SetTimer(ExplosionTimer, this, &AFPSProjectile::Detonate, 2.95f, false);
+	GetWorldTimerManager().SetTimer(ExplosionTimer, this, &AFPSProjectile::Detonate, 1.95f, false);
 }
 
 // Called every frame
@@ -107,8 +120,34 @@ void AFPSProjectile::Detonate()
 	SpawnParams.Instigator = GetInstigator();*/
 
 	if (World)
-	{
+	{		
+		TArray<AActor*> ignoredActors{};
+		ignoredActors.Add(this);
+
+		UGameplayStatics::ApplyRadialDamage(
+			GetWorld(),
+			GrenadeBaseDamage,
+			GetActorLocation(),
+			GrenadeRadius,
+			UDamageType::StaticClass(),
+			ignoredActors,
+			this,
+			GetInstigatorController(),
+			true // °Å¸® °¨¼â ¿©ºÎ
+		);
+
 		AGrenadeExplosion* GrenadeExplosion = World->SpawnActor<AGrenadeExplosion>(AGrenadeExplosion::StaticClass(), GetActorTransform());
+
+		UGameplayStatics::PlaySoundAtLocation( // Æø¹ßÀ½
+			GetWorld(),
+			ExplosionSound,
+			GetActorLocation(),
+			1.f,
+			1.f,
+			0.f,
+			ExplosionAttenuation
+		);
+		
 		Destroy();
 	}
 }
