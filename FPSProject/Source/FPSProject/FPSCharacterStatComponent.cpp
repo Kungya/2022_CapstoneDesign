@@ -56,7 +56,12 @@ void UFPSCharacterStatComponent::SetLevel(int32 NewLevel)
 
 void UFPSCharacterStatComponent::SetHp(int32 NewHp)
 {
-	Hp = NewHp;
+	if (NewHp > 50000) // NewHp가 최대체력을 넘어갈 경우 최대체력으로 고정
+		// TODO : 50000을 MaxHp로... ?
+		Hp = MaxHp;
+	else
+		Hp = NewHp;
+
 	if (Hp < 0)
 		Hp = 0;
 
@@ -77,6 +82,7 @@ void UFPSCharacterStatComponent::SetMp(int32 NewMp)
 void UFPSCharacterStatComponent::OnAttacked(float DamageAmount)
 {
 	int32 NewHp = Hp - DamageAmount;
+	// TODO : 사망관련 처리
 	SetHp(NewHp);
 }
 

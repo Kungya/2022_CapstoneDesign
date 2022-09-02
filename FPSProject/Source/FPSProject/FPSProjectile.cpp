@@ -126,9 +126,9 @@ void AFPSProjectile::Detonate()
 
 		UGameplayStatics::ApplyRadialDamage(
 			GetWorld(),
-			GrenadeBaseDamage,
+			GrenadeBaseDamage, // 폭발 데미지
 			GetActorLocation(),
-			GrenadeRadius,
+			GrenadeRadius, // 폭발 데미지 유효 반경
 			UDamageType::StaticClass(),
 			ignoredActors,
 			this,
