@@ -1,22 +1,23 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Potion.h"
+#include "Potion_S_MP.h"
 #include "Components/BoxComponent.h"
 #include "FPSCharacter.h"
 #include "FPSCharacterStatComponent.h"
 
 // Sets default values
-APotion::APotion()
+APotion_S_MP::APotion_S_MP()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	PotionMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("POTION"));
+	PotionMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SMANAPOTION"));
+	// Convention - S : Small, MANA : Blue (<-> Health)
 	Trigger = CreateDefaultSubobject<UBoxComponent>(TEXT("TRIGGER"));
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> SP(TEXT("StaticMesh'/Game/Assets/Potion/Potion_S_1.Potion_S_1'"));
-	// 임시로 체력 포션 (빨간색) Potion의  Static Mesh 사용
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> SP(TEXT("StaticMesh'/Game/Assets/Potion/Potion_S_2.Potion_S_2'"));
+
 	if (SP.Succeeded())
 	{
 		PotionMesh->SetStaticMesh(SP.Object);
@@ -24,16 +25,15 @@ APotion::APotion()
 
 	PotionMesh->SetupAttachment(RootComponent);
 	Trigger->SetupAttachment(PotionMesh);
-	// Trigger를 PotionMesh에 붙이는 이유는 이렇게 하지 않으면 Mesh와 Trigger가 붙어서 움직이지 않음
-	
+
 	PotionMesh->SetCollisionProfileName(TEXT("Collectible"));
-	Trigger->SetCollisionProfileName(TEXT("Collectible"));
+	Trigger->SetCollisionProfileName(TEXT("Collectibe"));
 	Trigger->SetBoxExtent(FVector(25.f, 25.f, 20.f));
 
 }
 
 // Called when the game starts or when spawned
-void APotion::BeginPlay()
+void APotion_S_MP::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -42,31 +42,32 @@ void APotion::BeginPlay()
 	
 }
 
-void APotion::PostInitializeComponents()
+void APotion_S_MP::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-	
-	Trigger->OnComponentBeginOverlap.AddDynamic(this, &APotion::OnCharacterOverlap);
+
+	Trigger->OnComponentBeginOverlap.AddDynamic(this, &APotion_S_MP::OnCharacterOverlap);
 }
 
-void APotion::OnCharacterOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void APotion_S_MP::OnCharacterOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 
 	AFPSCharacter* FPSCharacter = Cast<AFPSCharacter>(OtherActor);
 	if (FPSCharacter)
 	{
-		FDamageEvent DamageEvent_Potion;
-		FPSCharacter->TakeDamage(-30, DamageEvent_Potion, GetInstigatorController(), this);
+		FDamageEvent DamageEvent_ManaPotion;
+		// TODO : 
 
-		Destroy(); // 포션 사라짐
+		Destroy();
 	}
 }
 
 // Called every frame
-void APotion::Tick(float DeltaTime)
+void APotion_S_MP::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 	AddActorWorldRotation(FRotator(0.f, RotateSpeed * DeltaTime, 0.f));
+
 }
 

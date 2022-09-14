@@ -47,20 +47,20 @@ AFPSProjectile::AFPSProjectile()
 	if (!ProjectileMeshComponent)
 	{
 		ProjectileMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ProjectileMeshComponent"));
-		static ConstructorHelpers::FObjectFinder<UStaticMesh>Mesh(TEXT("StaticMesh'/Game/Assets/Sphere.Sphere'"));
+		static ConstructorHelpers::FObjectFinder<UStaticMesh>Mesh(TEXT("StaticMesh'/Game/Assets/Grenade/grenadeMesh.grenadeMesh'"));
 		if (Mesh.Succeeded())
 		{
 			ProjectileMeshComponent->SetStaticMesh(Mesh.Object);
 		}
 	}
 
-	static ConstructorHelpers::FObjectFinder<UMaterial>Material(TEXT("Material'/Game/Assets/SphereMaterial.SphereMaterial'"));
+	static ConstructorHelpers::FObjectFinder<UMaterial>Material(TEXT("Material'/Game/Assets/Grenade/Mat_Grenade.Mat_Grenade'"));
 	if (Material.Succeeded())
 	{
 		ProjectileMaterialInstance = UMaterialInstanceDynamic::Create(Material.Object, ProjectileMeshComponent);
 	}
 	ProjectileMeshComponent->SetMaterial(0, ProjectileMaterialInstance);
-	ProjectileMeshComponent->SetRelativeScale3D(FVector(0.1f, 0.1f, 0.1f));
+	ProjectileMeshComponent->SetRelativeScale3D(FVector(1.2f, 1.2f, 1.2f)); //크기 조정
 	ProjectileMeshComponent->SetupAttachment(RootComponent);
 
 	// 2초 후 사라짐

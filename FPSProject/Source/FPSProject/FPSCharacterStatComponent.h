@@ -31,7 +31,8 @@ public:
 	void SetMp(int32 NewMp);
 	void OnAttacked(float DamageAmount);
 	bool OnSkill(float MpAmount);
-
+	void HealHp(float HealAmount);
+	void HealMp(float HealAmount);
 	int32 GetLevel() { return Level; }
 	int32 GetHp() { return Hp; }
 	int32 GetMaxHp() { return MaxHp; }

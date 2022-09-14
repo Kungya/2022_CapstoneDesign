@@ -56,11 +56,13 @@ void UFPSCharacterStatComponent::SetLevel(int32 NewLevel)
 
 void UFPSCharacterStatComponent::SetHp(int32 NewHp)
 {
-	if (NewHp > 50000) // NewHp가 최대체력을 넘어갈 경우 최대체력으로 고정
-		// TODO : 50000을 MaxHp로... ?
-		Hp = MaxHp;
-	else
-		Hp = NewHp;
+	//if (NewHp > 50000) // NewHp가 최대체력을 넘어갈 경우 최대체력으로 고정
+	//	// TODO : 50000을 MaxHp로... ?
+	//	Hp = MaxHp;
+	//else
+	//	Hp = NewHp;
+
+	Hp = NewHp;
 
 	if (Hp < 0)
 		Hp = 0;
@@ -73,7 +75,13 @@ void UFPSCharacterStatComponent::SetHp(int32 NewHp)
 
 void UFPSCharacterStatComponent::SetMp(int32 NewMp)
 {
+	/*if (NewMp > 200)
+		Mp = MaxMp;
+	else
+		Mp = NewMp;*/
+
 	Mp = NewMp;
+
 	if (Mp < 0)
 		Mp = 0;
 
@@ -100,4 +108,24 @@ bool UFPSCharacterStatComponent::OnSkill(float MpAmount)
 	SetMp(NewMp);
 
 	return 0;
+}
+
+void UFPSCharacterStatComponent::HealHp(float HealAmount)
+{
+	int32 NewHp = Hp + HealAmount;
+
+	if (NewHp > 50000)
+		NewHp = MaxHp;
+
+	SetHp(NewHp);
+}
+
+void UFPSCharacterStatComponent::HealMp(float HealAmount)
+{
+	int32 NewMp = Mp + HealAmount;
+
+	if (NewMp > 200)
+		NewMp = MaxMp;
+
+	SetMp(NewMp);
 }
