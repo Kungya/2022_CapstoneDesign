@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 #include "FPSCharacter.h"
 #include "FPSProject.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "Camera/CameraComponent.h"
 #include "FPSCharacterAnimInstance.h"
 #include "FPSWeaponAnimInstance.h"
 #include "Blueprint/UserWidget.h"
@@ -17,67 +19,61 @@
 #include "Math/UnrealMathUtility.h"
 
 // Sets default values
-AFPSCharacter::AFPSCharacter()
+AFPSCharacter::AFPSCharacter() :
+	BaseTurnRate(45.f),
+	BaseLookUpRate(45.f)
+
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	// FPS Camera Component 생성
-	FPSCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
-	// null check
-	check(FPSCameraComponent != nullptr);
+	// Create a camera boom (pulls in towards the charcater if there is a collision)
+	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+	CameraBoom->SetupAttachment(RootComponent);
+	CameraBoom->TargetArmLength = 300.f;
+	CameraBoom->bUsePawnControlRotation = true;
 
-	// Camera Component를 Capsule Component에 붙임
-	FPSCameraComponent->SetupAttachment(GetCapsuleComponent());
+	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
+	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach camera to end of boom
+	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
-	// 카메라 위치를 눈 위쪽으로
-	FPSCameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 40.0f + BaseEyeHeight));
-	// Pawn의 카메라 Rotation 제어 허용
-	FPSCameraComponent->bUsePawnControlRotation = true;
-	
-	//-----------------------------------------------------------------------------------------------//
+	//// Create a first person mesh component for the owning player.
+	//FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
+	//check(FPSMesh != nullptr);
 
-	// Create a first person mesh component for the owning player.
-	FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
-	check(FPSMesh != nullptr);
+	//// Only the owning player sees this mesh.
+	//FPSMesh->SetOnlyOwnerSee(true);
 
-	// Only the owning player sees this mesh.
-	FPSMesh->SetOnlyOwnerSee(true);
+	//// Attach the FPS mesh to the FPS Camera.
+	//FPSMesh->SetupAttachment(FollowCamera);
 
-	// Attach the FPS mesh to the FPS Camera.
-	FPSMesh->SetupAttachment(FPSCameraComponent);
+	//// Disable some environmental shadows to preserve the ilusion of having a sisngle mesh.
+	//FPSMesh->bCastDynamicShadow = false;
+	//FPSMesh->CastShadow = false;
 
-	// Disable some environmental shadows to preserve the ilusion of having a sisngle mesh.
-	FPSMesh->bCastDynamicShadow = false;
-	FPSMesh->CastShadow = false;
-
-	// 1인칭 SkeletalMesh 추가
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> FPPSM(TEXT("SkeletalMesh'/Game/Assets/HeroFPP.HeroFPP'"));
-	if (FPPSM.Succeeded())
-	{
-		FPSMesh->SetSkeletalMesh(FPPSM.Object);
-	}
+	//// 1인칭 SkeletalMesh 추가
+	//static ConstructorHelpers::FObjectFinder<USkeletalMesh> FPPSM(TEXT("SkeletalMesh'/Game/Assets/HeroFPP.HeroFPP'"));
+	//if (FPPSM.Succeeded())
+	//{
+	//	FPSMesh->SetSkeletalMesh(FPPSM.Object);
+	//}
 
 	// 3인칭 SkeletalMesh 추가
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> SM(TEXT("SkeletalMesh'/Game/Assets/AnimStarterPack/UE4_Mannequin/Mesh/SK_Mannequin.SK_Mannequin'"));
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> SM(TEXT("SkeletalMesh'/Game/ParagonLtBelica/Characters/Heroes/Belica/Meshes/Belica.Belica'"));
 	if (SM.Succeeded())
 	{
 		GetMesh()->SetSkeletalMesh(SM.Object);
-		// The owning player doesn't see the regular (third-person) body mesh.
-		GetMesh()->SetOwnerNoSee(true);
 		GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
-		GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -78.f));
+		GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -88.f));
 	}
 	
 	// FPSMesh의 소켓에 무기 장착
-	FName WeaponSocket(TEXT("b_RightWeapon_Socket"));
+	/*FName WeaponSocket(TEXT("b_RightWeapon_Socket"));
 	if (FPSMesh->DoesSocketExist(WeaponSocket))
 	{
 		FPSWeapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WEAPON"));
 
 		static ConstructorHelpers::FObjectFinder<USkeletalMesh> SW(TEXT("SkeletalMesh'/Game/MilitaryWeapSilver/Weapons/Assault_Rifle_A.Assault_Rifle_A'"));
-		
-		check(FPSCameraComponent != nullptr);
 
 		if (SW.Succeeded())
 		{
@@ -89,16 +85,7 @@ AFPSCharacter::AFPSCharacter()
 			FPSWeapon->bCastDynamicShadow = false;
 			FPSWeapon->CastShadow = false;
 		}
-	}
-
-	//// 미니맵 추적용 SpringArm + SceneCapture 에러로 블루프린트 상태에서 컴포넌트 추가로 대체중
-	//SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SPRINGARM"));
-	//SpringArm->TargetArmLength = 300.f;
-	//SpringArm->SetRelativeRotation(FRotator(-90.f, 0.f, 0.f));
-	//
-	//MiniMapCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("MINIMAPCAPTURE"));
-	//MiniMapCapture->SetupAttachment(SpringArm);
-	
+	}*/
 
 	Stat = CreateDefaultSubobject<UFPSCharacterStatComponent>(TEXT("STAT"));
 
@@ -129,8 +116,6 @@ void AFPSCharacter::BeginPlay()
 
 	RefreshAmmoUI();
 	RefreshStatUI();
-
-	//UFPSRecoil* Recoil = NewObject<UFPSRecoil>(this, UFPSRecoil::StaticClass());
 }
 
 void AFPSCharacter::PostInitializeComponents()
@@ -143,22 +128,22 @@ void AFPSCharacter::PostInitializeComponents()
 
 	}
 
-	AnimInstanceFPP = Cast<UFPSCharacterAnimInstance>(FPSMesh->GetAnimInstance());
-	if (AnimInstanceFPP)
-	{// 델리게이트 바인딩 - Reloading
-		AnimInstanceFPP->OnMontageEnded.AddDynamic(this, &AFPSCharacter::OnReloadingMontageEnded);
-		//AnimInstanceFPP->OnReloading.AddUObject(this, &AFPSCharacter::ReloadingCheck);
-		/*-> 탄창이 다시 장착된 순간에 재장전 기능을 실행하는게 적합하다고 생각하여
-		Weapon 쪽 Notify로 재장전 기능을 실행했기 때문에 현재 사용 안함,*/
-	}
+	//AnimInstanceFPP = Cast<UFPSCharacterAnimInstance>(FPSMesh->GetAnimInstance());
+	//if (AnimInstanceFPP)
+	//{// 델리게이트 바인딩 - Reloading
+	//	AnimInstanceFPP->OnMontageEnded.AddDynamic(this, &AFPSCharacter::OnReloadingMontageEnded);
+	//	//AnimInstanceFPP->OnReloading.AddUObject(this, &AFPSCharacter::ReloadingCheck);
+	//	/*-> 탄창이 다시 장착된 순간에 재장전 기능을 실행하는게 적합하다고 생각하여
+	//	Weapon 쪽 Notify로 재장전 기능을 실행했기 때문에 현재 사용 안함,*/
+	//}
 
-	WeaponAnimInstance = Cast<UFPSWeaponAnimInstance>(FPSWeapon->GetAnimInstance());
+	/*WeaponAnimInstance = Cast<UFPSWeaponAnimInstance>(FPSWeapon->GetAnimInstance());
 	if (WeaponAnimInstance)
 	{
 		WeaponAnimInstance->OnMontageEnded.AddDynamic(this, &AFPSCharacter::OnFiringMontageEnded);
 		WeaponAnimInstance->OnFiring.AddUObject(this, &AFPSCharacter::Raycast);
 		WeaponAnimInstance->OnWeaponReloading.AddUObject(this, &AFPSCharacter::ReloadingCheck);
-	}
+	}*/
 
 	HpBar->InitWidget();
 
@@ -174,37 +159,36 @@ void AFPSCharacter::PostInitializeComponents()
 void AFPSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	//Recoil->RecoilTick(DeltaTime);
 }
 
 // Called to bind functionality to input
 void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	check(PlayerInputComponent);
 
-	// "movement" 바인딩 구성
 	PlayerInputComponent->BindAxis("MoveForward", this, &AFPSCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
-
-	// "look" 바인딩 구성
-	PlayerInputComponent->BindAxis("Yaw", this, &AFPSCharacter::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("Pitch", this, &AFPSCharacter::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("TurnRate", this, &AFPSCharacter::TurnAtRate);
+	PlayerInputComponent->BindAxis("LookUpRate", this, &AFPSCharacter::LookUpAtRate);
+	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 
 	// "action" 바인딩 구성
 	//PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
 	//PlayerInputComponent->BindAction("Jump", IE_Released, this, &AFPSCharacter::StopJump);
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 	
 	PlayerInputComponent->BindAction("Sliding", IE_Pressed, this, &AFPSCharacter::Sliding);
 
 	// "Fire" 바인딩 구성
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
 	// "RayCast" 바인딩 구성
-	PlayerInputComponent->BindAction("Raycast", IE_Pressed, this, &AFPSCharacter::StartRaycast);
-	PlayerInputComponent->BindAction("Raycast", IE_Released, this, &AFPSCharacter::StopRaycast);
+	//PlayerInputComponent->BindAction("Raycast", IE_Pressed, this, &AFPSCharacter::StartRaycast);
+	//PlayerInputComponent->BindAction("Raycast", IE_Released, this, &AFPSCharacter::StopRaycast);
 	// "Relodaing" 바인딩
-	PlayerInputComponent->BindAction("Reloading", IE_Pressed, this, &AFPSCharacter::Reloading);
+	//PlayerInputComponent->BindAction("Reloading", IE_Pressed, this, &AFPSCharacter::Reloading);
 	// 실험용, HP감소
 	PlayerInputComponent->BindAction("DecreaseHp", IE_Pressed, this, &AFPSCharacter::DecreaseHp);
 
@@ -212,18 +196,46 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 
 void AFPSCharacter::MoveForward(float Value)
 {
-	if (Value == 0.f)
-		return;
+	if ((Controller != nullptr) && (Value != 0.f))
+	{
+		// find out which way is forward
+		const FRotator Rotation{ Controller->GetControlRotation() };
+		const FRotator YawRotation{ 0, Rotation.Yaw, 0 };
 
-	AddMovementInput(GetActorForwardVector(), Value);
+		const FVector Direction{ FRotationMatrix{YawRotation}.GetUnitAxis(EAxis::X) };
+		AddMovementInput(Direction, Value);
+	}
+	else
+	{
+		return;
+	}
 }
 
 void AFPSCharacter::MoveRight(float Value)
 {
-	if (Value == 0.f)
-		return;
+	if ((Controller != nullptr) && (Value != 0.f))
+	{
+		// find out which way is right
+		const FRotator Rotation{ Controller->GetControlRotation() };
+		const FRotator YawRotation{ 0, Rotation.Yaw, 0 };
 
-	AddMovementInput(GetActorRightVector(), Value);
+		const FVector Direction{ FRotationMatrix{YawRotation}.GetUnitAxis(EAxis::Y) };
+		AddMovementInput(Direction, Value);
+	}
+	else
+	{
+		return;
+	}
+}
+
+void AFPSCharacter::TurnAtRate(float Rate)
+{
+	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds()); // deg/sec * sec/frame
+}
+
+void AFPSCharacter::LookUpAtRate(float Rate)
+{
+	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 }
 
 void AFPSCharacter::Sliding()
@@ -253,7 +265,7 @@ void AFPSCharacter::Sliding()
 		LaunchCharacter(GetLastMovementInputVector() * SlidingSpeed, true, true);
 	}
 	// 2초 뒤에 사용할 수 있게 SlidingTime을 true로 설정하는 SlidingTimer 호출
-	GetWorldTimerManager().SetTimer(Timer, this, &AFPSCharacter::SlidingTimer, 2.f, false);
+	GetWorldTimerManager().SetTimer(SlidingCooldown, this, &AFPSCharacter::SlidingTimer, 2.f, false);
 }
 
 void AFPSCharacter::SlidingTimer()
@@ -349,8 +361,8 @@ void AFPSCharacter::Raycast()
 	RefreshAmmoUI();
 
 
-	FVector start = FPSCameraComponent->GetComponentLocation();
-	FVector forward = FPSCameraComponent->GetForwardVector();
+	FVector start = FollowCamera->GetComponentLocation();
+	FVector forward = FollowCamera->GetForwardVector();
 	FVector end = start + forward * 3000;
 	FHitResult HitResult;
 	
@@ -369,31 +381,20 @@ void AFPSCharacter::Raycast()
 		if (RayCastResult && HitResult.Actor.IsValid())
 		{
 			//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, HitResult.GetActor()->GetFName().ToString());
-
-			// 총알 개념이므로 FPointDamageEvent
 			FPointDamageEvent PointDamageEvent;
 			// this : 내가 공격하는거니까
 			HitResult.Actor->TakeDamage(Stat->GetAttack(), PointDamageEvent, GetController(), this);
 		}
-
 	}
 
-
-	// Recoil, TODO : Using Vector Curve, Interp
 	AddControllerPitchInput(FMath::RandRange(0.3f, 0.6f) * -1);
 	AddControllerYawInput(FMath::RandRange(-0.1f, 0.1f));
-
-	/*
-	TODO : 반동... -3x^@
-	*/
-	// Recursion
 
 	GetWorldTimerManager().SetTimer(AutoModeTimer, this, &AFPSCharacter::Raycast, .12f, false);
 }
 
 void AFPSCharacter::StopRaycast()
 {
-	//Recoil->RecoilStop();
 	IsRaycasting = false;
 }
 
@@ -404,28 +405,29 @@ void AFPSCharacter::Reloading()
 	// TODO : IsReloading을 조절해주는 StartReloading, StopReloaidng... 설정
 	IsReloading = true;
 
-	AnimInstanceFPP->PlayReloadingMontage();
-	WeaponAnimInstance->PlayWeaponReloadingMontage();
+	//AnimInstanceFPP->PlayReloadingMontage();
+	//WeaponAnimInstance->PlayWeaponReloadingMontage();
 	//FPSMesh->PlayAnimation(AnimReloading, false);
 }
 
-void AFPSCharacter::ReloadingCheck()
-{
-	if (SpareAmmo - (MaxAmmo - CurrAmmo) < 0)
-	{
-		// 3발 여유가 남아있는데 2/6 인 상황, 그러면 +3만 해주어야한다
-		CurrAmmo += SpareAmmo;
-		SpareAmmo = 0;
-	}
-	else
-	{
-		SpareAmmo -= (MaxAmmo - CurrAmmo);
-		CurrAmmo = MaxAmmo;
-	}
-
-	RefreshAmmoUI();
-	IsReloading = false;
-}
+// 노티파이로 구현된 재장전 기능부분
+//void AFPSCharacter::ReloadingCheck()
+//{
+//	if (SpareAmmo - (MaxAmmo - CurrAmmo) < 0)
+//	{
+//		// 3발 여유가 남아있는데 2/6 인 상황, 그러면 +3만 해주어야한다
+//		CurrAmmo += SpareAmmo;
+//		SpareAmmo = 0;
+//	}
+//	else
+//	{
+//		SpareAmmo -= (MaxAmmo - CurrAmmo);
+//		CurrAmmo = MaxAmmo;
+//	}
+//
+//	RefreshAmmoUI();
+//	IsReloading = false;
+//}
 
 void AFPSCharacter::DecreaseHp()
 {

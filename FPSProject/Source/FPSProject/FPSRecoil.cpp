@@ -10,12 +10,12 @@ UFPSRecoil::UFPSRecoil()
 	// caching
 	PCRef = UGameplayStatics::GetPlayerController(this, 0);
 	
-	static ConstructorHelpers::FObjectFinder<UCurveVector> CV(TEXT("CurveVector'/Game/Data/AK47_RecoilCurve.AK47_RecoilCurve'"));
+	/*static ConstructorHelpers::FObjectFinder<UCurveVector> CV(TEXT("CurveVector'/Game/Data/AK47_RecoilCurve.AK47_RecoilCurve'"));
 	if (CV.Succeeded())
 	{
 		RecoilCurve = CV.Object;
 		UE_LOG(LogTemp, Warning, TEXT("Succeeded!"));
-	}
+	}*/
 }
 
 void UFPSRecoil::RecoilStart()

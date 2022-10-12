@@ -18,33 +18,34 @@ class FPSPROJECT_API UFPSCharacterAnimInstance : public UAnimInstance
 public:
 	UFPSCharacterAnimInstance();
 
+	void UpdateAnimationProperties(float DeltaTime);
+
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
+	virtual void NativeInitializeAnimation() override;
 
-	UFUNCTION()
-	void PlayReloadingMontage();
+	/*UFUNCTION()
+	void PlayReloadingMontage();*/
 private:
-	UFUNCTION()
-	void AnimNotify_Reloading();
+	/*UFUNCTION()
+	void AnimNotify_Reloading();*/
 
 private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	class AFPSCharacter* ShooterCharacter;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	float Speed;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
-	bool IsFalling;
+	/* Whether or not the character is moving */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	bool bIsInAir;
+
+	/* Wheter or not the character is moving */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	bool bIsAccelerating;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	UAnimMontage* ReloadingMontage;
-
-	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
-	bool IsReloading;*/
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
-	float Horizontal;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
-	float Vertical;
 	
 public:
 	FOnReloading OnReloading;

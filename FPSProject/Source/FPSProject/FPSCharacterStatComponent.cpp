@@ -90,7 +90,7 @@ void UFPSCharacterStatComponent::SetMp(int32 NewMp)
 void UFPSCharacterStatComponent::OnAttacked(float DamageAmount)
 {
 	int32 NewHp = Hp - DamageAmount;
-	// TODO : 사망관련 처리
+	// TODO : 사망관련 처리, 여러가지 온갖 정보들이 여기서 추가됨
 	SetHp(NewHp);
 }
 

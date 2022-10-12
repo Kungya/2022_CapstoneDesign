@@ -9,7 +9,6 @@
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
 ///
-#include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "FPSProjectile.h"
 #include "Engine/EngineTypes.h" // TimerHandle
@@ -22,7 +21,6 @@
 #include "Curves/CurveVector.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 //
-#include "GameFramework/SpringArmComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "FPSCharacter.generated.h" // 이 header는 항상 마지막에 include 해야함
 
@@ -35,30 +33,51 @@ public:
 	// Sets default values for this character's properties
 	AFPSCharacter();
 
-	///*UFPSRecoil* RecoilSys;*/
-	//UPROPERTY()
-	//UCurveVector* RecoilCurve;
-
-	//UPROPERTY()
-	//UFPSRecoil* Recoil;
-
-
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 	virtual void PostInitializeComponents() override;
+
+	void MoveForward(float Value);
+	void MoveRight(float Value);
+	/* 
+	* Called via input to turn at a given rate.
+	* @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
+	*/
+	void TurnAtRate(float Rate);
+
+	/*
+	* Called via input to look up/down at a given rate.
+	* @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired rate
+	*/
+	void LookUpAtRate(float Rate);
 
 	// Projectile class to spawn.
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 	TSubclassOf<class AFPSProjectile> ProjectileClass;
 
-	//UPROPERTY()
-	//TSubclassOf<class UFPSRecoil> RecoilClass;
+
 
 private:
 	UPROPERTY()
 	bool SlidingTime = true;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	class USpringArmComponent* CameraBoom;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	class UCameraComponent* FollowCamera;
+
+	/* in deg/sec. Other scaling may affect final turn rate */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	float BaseTurnRate;
+
+	/* in deg/sec. Other scaling may affect final turn rate */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	float BaseLookUpRate;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = Mesh, meta = (AllowPrivateAccess = "true"))
+	USkeletalMeshComponent* FPSWeapon;
 
 	UPROPERTY()
 	class UFPSCharacterAnimInstance* AnimInstance;
@@ -68,24 +87,14 @@ private:
 
 	UPROPERTY()
 	class UFPSWeaponAnimInstance* WeaponAnimInstance;
-
-	/*UPROPERTY()
-	class UAnimSequence* AnimReloading;*/
-
 public:
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	// 전후 이동 처리
-	UFUNCTION()
-	void MoveForward(float Value);
-	
-	// 좌우 이동 처리
-	UFUNCTION()
-	void MoveRight(float Value);
+	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 	UFUNCTION()
 	void Sliding();
@@ -115,8 +124,8 @@ public:
 	UFUNCTION()
 	void Reloading();
 
-	UFUNCTION()
-	void ReloadingCheck();
+	/*UFUNCTION()
+	void ReloadingCheck();*/
 
 	UFUNCTION()
 	void DecreaseHp();
@@ -128,20 +137,6 @@ public:
 	void OnFiringMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
-
-	// FPS Camera
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	UCameraComponent* FPSCameraComponent;
-
-	// First-person mesh (arms), visible only to the owning player.
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-	USkeletalMeshComponent* FPSMesh;
-
-	UPROPERTY(VisibleAnywhere, Category = Mesh)
-	USkeletalMeshComponent* FPSWeapon;
-
-	UPROPERTY(EditAnywhere)
-	USpringArmComponent* SpringArm;
 
 	UPROPERTY(EditAnywhere)
 	USceneCaptureComponent2D* MiniMapCapture;
@@ -157,7 +152,7 @@ public:
 	FVector MuzzleOffset;
 
 	UPROPERTY()
-	FTimerHandle Timer;
+	FTimerHandle SlidingCooldown;
 
 	UPROPERTY()
 	FTimerHandle AutoModeTimer;
