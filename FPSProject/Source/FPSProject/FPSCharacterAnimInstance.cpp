@@ -4,6 +4,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "FPSCharacter.h"
+#include "Kismet/KismetMathLibrary.h"
 
 UFPSCharacterAnimInstance::UFPSCharacterAnimInstance()
 {
@@ -16,47 +17,68 @@ UFPSCharacterAnimInstance::UFPSCharacterAnimInstance()
 
 void UFPSCharacterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 {
-
-}
-
-void UFPSCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
-{
-	Super::NativeUpdateAnimation(DeltaSeconds);
-
-	auto Pawn = TryGetPawnOwner();
-
-	if (IsValid(Pawn))
+	if (ShooterCharacter == nullptr)
 	{
-		FVector Velocity{ Pawn->GetVelocity() };
+		ShooterCharacter = Cast<AFPSCharacter>(TryGetPawnOwner());
+	}
+
+	if (ShooterCharacter)
+	{
+		// Get speed of character from velocity except Z axis
+		FVector Velocity{ ShooterCharacter->GetVelocity() };
 		Velocity.Z = 0;
 		Speed = Velocity.Size();
-		
-		auto Character = Cast<AFPSCharacter>(Pawn);
-		if (Character)
-		{
-			// Is the character in the air?
-			bIsInAir = Character->GetMovementComponent()->IsFalling();
 
-			// Is the character accelerating?
-			if (Character->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0.f)
-			{
-				bIsAccelerating = true;
-			}
-			else
-			{
-				bIsAccelerating = false;
-			}
-			//bIsAccelerating = ShooterCharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0.f ? true : false;
-			
-			// 블렌드 스페이스 -> 좌우 애니메이션이 현재 없으므로 TODO : 애니메이션 에셋 추가시 추가
-			//Vertical = Character->UpDownValue; 
-			//Horizontal = Character->LeftRightValue;
+		// Is the character in the air?
+		bIsInAir = ShooterCharacter->GetMovementComponent()->IsFalling();
+		
+		// Is the character accelerating?
+		if (ShooterCharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0.f)
+		{
+			bIsAccelerating = true;
 		}
+		else
+		{
+			bIsAccelerating = false;
+		}
+		
+		FRotator AimRotation = ShooterCharacter->GetBaseAimRotation();
+		FRotator MovementRotation =
+			UKismetMathLibrary::MakeRotFromX(
+				ShooterCharacter->GetVelocity());
+
+		MovementOffsetYaw = UKismetMathLibrary::NormalizedDeltaRotator(
+			MovementRotation,
+			AimRotation).Yaw;
+		
+		if (ShooterCharacter->GetVelocity().Size() > 0.f)
+		{
+			LastMovementOffsetYaw = MovementOffsetYaw;
+		}
+		/*FString RotationMessage = 
+			FString::Printf(
+				TEXT("Base Aim Rotation : %f"), 
+				AimRotation.Yaw);*/
+		/*FString MovmentRotationMessage =
+			FString::Printf(
+				TEXT("Movmenet Rotation: %f"),
+				MovementRotation.Yaw);
+		FString OffsetMessage =
+			FString::Printf(
+				TEXT("Movement Offset Yaw : %f"),
+				MovementOffsetYaw);*/
+
+		/*if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::Orange, MovementOffsetYaw);
+		}*/
 	}
+
 }
+
 void UFPSCharacterAnimInstance::NativeInitializeAnimation()
 {
-	//ShooterCharacter = Cast<AFPSCharacter>(TryGetPawnOwner());
+	ShooterCharacter = Cast<AFPSCharacter>(TryGetPawnOwner());
 }
 //void UFPSCharacterAnimInstance::PlayReloadingMontage()
 //{

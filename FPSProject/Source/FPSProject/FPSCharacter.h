@@ -11,7 +11,6 @@
 #include "Components/CapsuleComponent.h"
 #include "FPSProjectile.h"
 #include "Engine/EngineTypes.h" // TimerHandle
-#include "FPSRecoil.h"
 //
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetStringLibrary.h"
@@ -51,12 +50,17 @@ protected:
 	*/
 	void LookUpAtRate(float Rate);
 
+	void StartRaycast();
+
+	void Raycast();
+
+	void StopRaycast();
+
+	bool GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVector& OutBeamLocation);
+
 	// Projectile class to spawn.
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 	TSubclassOf<class AFPSProjectile> ProjectileClass;
-
-
-
 private:
 	UPROPERTY()
 	bool SlidingTime = true;
@@ -127,15 +131,6 @@ public:
 
 	UFUNCTION()
 	void RefreshStatUI();
-
-	UFUNCTION()
-	void StartRaycast();
-
-	UFUNCTION()
-	void Raycast();
-
-	UFUNCTION()
-	void StopRaycast();
 
 	UFUNCTION()
 	void Reloading();

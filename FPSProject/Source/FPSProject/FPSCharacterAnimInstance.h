@@ -18,9 +18,9 @@ class FPSPROJECT_API UFPSCharacterAnimInstance : public UAnimInstance
 public:
 	UFPSCharacterAnimInstance();
 
+	UFUNCTION(BlueprintCallable)
 	void UpdateAnimationProperties(float DeltaTime);
 
-	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 	virtual void NativeInitializeAnimation() override;
 
 	/*UFUNCTION()
@@ -43,6 +43,14 @@ private:
 	/* Wheter or not the character is moving */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	bool bIsAccelerating;
+
+	/** Offset yaw used for strafing, caculate every frame(tick)  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	float MovementOffsetYaw;
+
+	/** Offset yaw the frame "before" we stopped moving */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	float LastMovementOffsetYaw;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pawn, Meta = (AllowPrivateAccess = true))
 	UAnimMontage* ReloadingMontage;
