@@ -7,7 +7,6 @@
 /// raycast header
 #include "GameFrameWork/Actor.h"
 #include "Engine/World.h"
-#include "DrawDebugHelpers.h"
 ///
 #include "Components/CapsuleComponent.h"
 #include "FPSProjectile.h"
@@ -76,11 +75,28 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	float BaseLookUpRate;
 
+	/** Randomized gunshot sound cue */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	class USoundCue* FireSound;
+
+	/** Flash spawned at BarrelSocket */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	class UParticleSystem* MuzzleFlash;
+
+	/** Montage for firing the weapon */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	class UAnimMontage* HipFireMontage;
+
+	/** Particles spawned upon bullet impact */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	UParticleSystem* ImpactParticles;
+
+	/** Smoke trail for bullets */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	UParticleSystem* BeamParticles;
+
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = Mesh, meta = (AllowPrivateAccess = "true"))
 	USkeletalMeshComponent* FPSWeapon;
-
-	UPROPERTY()
-	class UFPSCharacterAnimInstance* AnimInstance;
 
 	UPROPERTY()
 	class UFPSCharacterAnimInstance* AnimInstanceFPP;

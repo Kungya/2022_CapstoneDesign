@@ -8,6 +8,9 @@
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
+#include "Engine/SkeletalMeshSocket.h"
+#include "DrawDebugHelpers.h"
+#include "Particles/ParticleSystemComponent.h"
 #include "FPSProjectGameModeBase.h"
 #include "FPSCharacterHUD.h"
 #include "Components/TextBlock.h"
@@ -32,10 +35,23 @@ AFPSCharacter::AFPSCharacter() :
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 300.f;
 	CameraBoom->bUsePawnControlRotation = true;
+	CameraBoom->SocketOffset = FVector(0.f, 50.f, 50.f);
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach camera to end of boom
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+
+	// Don't rotate when the controller rotates. Let the controller only affect the camera.
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationYaw = true;
+	bUseControllerRotationRoll = false;
+
+	// Confgure character movement
+	GetCharacterMovement()->bOrientRotationToMovement = false; // Character moves in the direction of input...
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 540.f, 0.f); // ... at this rotation rate
+
+	GetCharacterMovement()->JumpZVelocity = 600.f;
+	GetCharacterMovement()->AirControl = 0.2f;
 
 	//// Create a first person mesh component for the owning player.
 	//FPSMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstPersonMesh"));
@@ -122,11 +138,11 @@ void AFPSCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	AnimInstance = Cast<UFPSCharacterAnimInstance>(GetMesh()->GetAnimInstance());
+	/*AnimInstance = Cast<UFPSCharacterAnimInstance>(GetMesh()->GetAnimInstance());
 	if (AnimInstance)
 	{
 
-	}
+	}*/
 
 	//AnimInstanceFPP = Cast<UFPSCharacterAnimInstance>(FPSMesh->GetAnimInstance());
 	//if (AnimInstanceFPP)
@@ -185,6 +201,7 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	// "Fire" 바인딩 구성
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
 	// "RayCast" 바인딩 구성
+	PlayerInputComponent->BindAction("FireButton", IE_Pressed, this, &AFPSCharacter::Raycast);
 	//PlayerInputComponent->BindAction("Raycast", IE_Pressed, this, &AFPSCharacter::StartRaycast);
 	//PlayerInputComponent->BindAction("Raycast", IE_Released, this, &AFPSCharacter::StopRaycast);
 	// "Relodaing" 바인딩
@@ -352,7 +369,130 @@ void AFPSCharacter::StartRaycast()
 
 void AFPSCharacter::Raycast()
 {
-	if (CurrAmmo <= 0 || !IsRaycasting || IsReloading)
+	if (FireSound)
+	{
+		UGameplayStatics::PlaySound2D(this, FireSound);
+	}
+
+	const USkeletalMeshSocket* BarrelSocket = GetMesh()->GetSocketByName("BarrelSocket");
+
+	if (BarrelSocket)
+	{
+		// 총구 위치
+		const FTransform SocketTransform = BarrelSocket->GetSocketTransform(GetMesh());
+
+		if (MuzzleFlash)
+		{
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFlash, SocketTransform);
+		}
+
+		// Get current size of the viewport
+		FVector2D ViewportSize;
+		if (GEngine && GEngine->GameViewport)
+		{
+			GEngine->GameViewport->GetViewportSize(ViewportSize);
+		}
+
+		// Get screen space location of crosshairs
+
+		FVector2D CrosshairLocation(ViewportSize.X / 2.f, ViewportSize.Y / 2.f);
+		CrosshairLocation.Y -= 50.f;
+		FVector CrosshairWorldPosition;
+		FVector CrosshairWorldDirection;
+
+		bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(UGameplayStatics::GetPlayerController(this, 0),
+			CrosshairLocation,
+			CrosshairWorldPosition,
+			CrosshairWorldDirection);
+
+		if (bScreenToWorld) // deprojection 성공했을경우
+		{
+			FHitResult ScreenTraceHit;
+			const FVector Start{ CrosshairWorldPosition };
+			const FVector End{ CrosshairWorldPosition + CrosshairWorldDirection * 50'000.f };
+			
+			/* BeamEndPoint를 미리 End로 지정해놓음, 도중 충돌한 물체가 있다면 End를 바꾸고, 아니면
+			 End까지 Beam 효과를 내겠다는 뜻 */
+			FVector BeamEndPoint{ End };
+
+			// Trace from corsshairs world location
+			GetWorld()->LineTraceSingleByChannel(
+				ScreenTraceHit, 
+				Start, 
+				End, 
+				ECollisionChannel::ECC_Visibility);
+
+			if (ScreenTraceHit.bBlockingHit) // if trace hit
+			{
+				// 충돌한 물체가 있을 경우, BeamEndPoint를 End에서 충돌한 물체의 Location으로 변경
+				BeamEndPoint = ScreenTraceHit.Location;
+				if (ImpactParticles)
+				{
+					UGameplayStatics::SpawnEmitterAtLocation(
+						GetWorld(),
+						ImpactParticles,
+						ScreenTraceHit.Location);
+				}
+			}
+			if (BeamParticles)
+			{
+				UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
+					GetWorld(),
+					BeamParticles,
+					SocketTransform);
+				if (Beam)
+				{
+					Beam->SetVectorParameter(FName("Target"), BeamEndPoint);
+				}
+			}
+		}
+		/*
+		FHitResult FireHit;
+		const FVector Start{ SocketTransform.GetLocation() };
+		const FQuat Rotation{ SocketTransform.GetRotation() };
+		const FVector RotationAxis{ Rotation.GetAxisX() };
+		const FVector End{ Start + RotationAxis * 50'000.f };
+
+		FVector BeamEndPoint{ End };
+
+		GetWorld()->LineTraceSingleByChannel(
+			FireHit,
+			Start,
+			End,
+			ECollisionChannel::ECC_Visibility
+		);
+		if (FireHit.bBlockingHit)
+		{
+			//DrawDebugLine(GetWorld(), Start, End, FColor::Orange, false, 2.f);
+			//DrawDebugPoint(GetWorld(), FireHit.Location, 5.f, FColor::Orange, false, 2.f);
+
+			BeamEndPoint = FireHit.Location;
+
+			if (ImpactParticles)
+			{
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, FireHit.Location);
+			}
+		}
+
+		if (BeamParticles)
+		{
+			UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BeamParticles, SocketTransform);
+			if (Beam)
+			{
+				Beam->SetVectorParameter(FName("Target"), BeamEndPoint);
+			}
+		}
+		*/
+	}
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && HipFireMontage)
+	{
+		AnimInstance->Montage_Play(HipFireMontage);
+		AnimInstance->Montage_JumpToSection(FName("StartFire"));
+	}
+	
+	/*if (CurrAmmo <= 0 || !IsRaycasting || IsReloading)
 		return;
 
 	WeaponAnimInstance->PlayFiringMontage();
@@ -364,33 +504,33 @@ void AFPSCharacter::Raycast()
 	FVector start = FollowCamera->GetComponentLocation();
 	FVector forward = FollowCamera->GetForwardVector();
 	FVector end = start + forward * 3000;
-	FHitResult HitResult;
-	
-	if (GetWorld())
-	{
-		bool RayCastResult = GetWorld()->LineTraceSingleByChannel(
-			OUT HitResult,
-			start,
-			end,
-			ECollisionChannel::ECC_Visibility, // TODO : 채널을 추후에 Visibility 이외에 다른 것으로 변경
-			FCollisionQueryParams(),
-			FCollisionResponseParams()
-		);
-		//DrawDebugLine(GetWorld(), start, end, FColor::Red, false, 2.f, 0.f, 1.f);
-		
-		if (RayCastResult && HitResult.Actor.IsValid())
-		{
-			//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, HitResult.GetActor()->GetFName().ToString());
-			FPointDamageEvent PointDamageEvent;
-			// this : 내가 공격하는거니까
-			HitResult.Actor->TakeDamage(Stat->GetAttack(), PointDamageEvent, GetController(), this);
-		}
-	}
+	FHitResult HitResult;*/
+	//
+	//if (GetWorld())
+	//{
+	//	bool RayCastResult = GetWorld()->LineTraceSingleByChannel(
+	//		OUT HitResult,
+	//		start,
+	//		end,
+	//		ECollisionChannel::ECC_Visibility, // TODO : 채널을 추후에 Visibility 이외에 다른 것으로 변경
+	//		FCollisionQueryParams(),
+	//		FCollisionResponseParams()
+	//	);
+	//	//DrawDebugLine(GetWorld(), start, end, FColor::Red, false, 2.f, 0.f, 1.f);
+	//	
+	//	if (RayCastResult && HitResult.Actor.IsValid())
+	//	{
+	//		//GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, HitResult.GetActor()->GetFName().ToString());
+	//		FPointDamageEvent PointDamageEvent;
+	//		// this : 내가 공격하는거니까
+	//		HitResult.Actor->TakeDamage(Stat->GetAttack(), PointDamageEvent, GetController(), this);
+	//	}
+	//}
 
-	AddControllerPitchInput(FMath::RandRange(0.3f, 0.6f) * -1);
-	AddControllerYawInput(FMath::RandRange(-0.1f, 0.1f));
+	//AddControllerPitchInput(FMath::RandRange(0.3f, 0.6f) * -1);
+	//AddControllerYawInput(FMath::RandRange(-0.1f, 0.1f));
 
-	GetWorldTimerManager().SetTimer(AutoModeTimer, this, &AFPSCharacter::Raycast, .12f, false);
+	//GetWorldTimerManager().SetTimer(AutoModeTimer, this, &AFPSCharacter::Raycast, .12f, false);
 }
 
 void AFPSCharacter::StopRaycast()
