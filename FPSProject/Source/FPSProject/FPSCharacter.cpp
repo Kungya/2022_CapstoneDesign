@@ -24,7 +24,12 @@
 // Sets default values
 AFPSCharacter::AFPSCharacter() :
 	BaseTurnRate(45.f),
-	BaseLookUpRate(45.f)
+	BaseLookUpRate(45.f),
+	bAiming(false),
+	CameraDefaultFOV(0.f), // not good vaule, but set in BeginPlay
+	CameraZoomedFOV(35.f),
+	CameraCurrentFOV(0.f),
+	ZoomInterpSpeed(30.f)
 
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -33,9 +38,9 @@ AFPSCharacter::AFPSCharacter() :
 	// Create a camera boom (pulls in towards the charcater if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 300.f;
+	CameraBoom->TargetArmLength = 200.f;
 	CameraBoom->bUsePawnControlRotation = true;
-	CameraBoom->SocketOffset = FVector(0.f, 50.f, 50.f);
+	CameraBoom->SocketOffset = FVector(0.f, 50.f, 70.f);
 
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach camera to end of boom
@@ -125,10 +130,14 @@ AFPSCharacter::AFPSCharacter() :
 void AFPSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	if (GEngine)
-	{
 
+	// BeginPlay 에서 FollowCamera가 구성되므로 여기서 설정
+	if (FollowCamera)
+	{
+		CameraDefaultFOV = GetFollowCamera()->FieldOfView;
+		CameraCurrentFOV = CameraDefaultFOV;
 	}
+
 	RefreshAmmoUI();
 	RefreshStatUI();
 }
@@ -166,6 +175,9 @@ void AFPSCharacter::PostInitializeComponents()
 void AFPSCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// set FOV with Interpolation when aiming
+	CameraInterpZoom(DeltaTime);
 }
 
 // Called to bind functionality to input
@@ -193,6 +205,10 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
 	// "RayCast" 바인딩 구성
 	PlayerInputComponent->BindAction("FireButton", IE_Pressed, this, &AFPSCharacter::Raycast);
+	// Aiming
+	PlayerInputComponent->BindAction("AimingButton", IE_Pressed, this, &AFPSCharacter::AimingButtonPressed);
+	PlayerInputComponent->BindAction("AimingButton", IE_Released, this, &AFPSCharacter::AimingButtonReleased);
+
 	//PlayerInputComponent->BindAction("Raycast", IE_Pressed, this, &AFPSCharacter::StartRaycast);
 	//PlayerInputComponent->BindAction("Raycast", IE_Released, this, &AFPSCharacter::StopRaycast);
 	// "Relodaing" 바인딩
@@ -413,6 +429,40 @@ bool AFPSCharacter::GetBeamEndLocation(
 	}
 
 	return false;
+}
+
+void AFPSCharacter::AimingButtonPressed()
+{
+	bAiming = true;
+}
+
+void AFPSCharacter::AimingButtonReleased()
+{
+	bAiming = false;
+}
+
+void AFPSCharacter::CameraInterpZoom(float DeltaTime)
+{
+	// Set FOV
+	if (bAiming)
+	{
+		// Interp FOV current -> zoomed
+		CameraCurrentFOV = FMath::FInterpTo(
+			CameraCurrentFOV,
+			CameraZoomedFOV,
+			DeltaTime,
+			ZoomInterpSpeed);
+	}
+	else
+	{
+		// Interp FOV current -> default
+		CameraCurrentFOV = FMath::FInterpTo(
+			CameraCurrentFOV,
+			CameraDefaultFOV,
+			DeltaTime,
+			ZoomInterpSpeed);
+	}
+	GetFollowCamera()->SetFieldOfView(CameraCurrentFOV);
 }
 
 void AFPSCharacter::Sliding()

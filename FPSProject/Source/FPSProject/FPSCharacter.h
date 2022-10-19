@@ -58,6 +58,12 @@ protected:
 
 	bool GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVector& OutBeamLocation);
 
+	/** bAiming을 true, false로 설정해주기만 하는 함수들 */
+	void AimingButtonPressed();
+	void AimingButtonReleased();
+
+	void CameraInterpZoom(float DeltaTime);
+
 	// Projectile class to spawn.
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 	TSubclassOf<class AFPSProjectile> ProjectileClass;
@@ -99,6 +105,23 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	UParticleSystem* BeamParticles;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	bool bAiming;
+
+	/** Default camera FOV :  */
+	float CameraDefaultFOV;
+
+	/** FOV when aiming */
+	float CameraZoomedFOV;
+
+	/** Current field of view this frame for interp */
+	float CameraCurrentFOV;
+
+	/** Interp speed for zooming when aiming */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	float ZoomInterpSpeed;
+
+
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = Mesh, meta = (AllowPrivateAccess = "true"))
 	USkeletalMeshComponent* FPSWeapon;
 
@@ -115,6 +138,8 @@ public:
 
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	
+	FORCEINLINE bool GetAiming() const { return bAiming; }
 
 	UFUNCTION()
 	void Sliding();

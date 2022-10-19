@@ -55,6 +55,8 @@ void UFPSCharacterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 		{
 			LastMovementOffsetYaw = MovementOffsetYaw;
 		}
+
+		bAiming = ShooterCharacter->GetAiming();
 		/*FString RotationMessage = 
 			FString::Printf(
 				TEXT("Base Aim Rotation : %f"), 
