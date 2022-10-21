@@ -23,14 +23,25 @@
 
 // Sets default values
 AFPSCharacter::AFPSCharacter() :
+	// Base rates turn/look up
 	BaseTurnRate(45.f),
 	BaseLookUpRate(45.f),
+	HipTurnRate(90.f), // while not aiming
+	HipLookUpRate(90.f), // while not aiming
+	AimingTurnRate(20.f), // while aiming
+	AimingLookUpRate(20.f), // while aiming
+	// Mouse sensitivity scale factors
+	MouseHipTurnRate(1.0f),
+	MouseHipLookUpRate(1.0f),
+	MouseAimingTurnRate(0.2f),
+	MouseAimingLookUpRate(0.2f),
+	// when is aiming, true (bool)
 	bAiming(false),
+	// Camera FOV vaules
 	CameraDefaultFOV(0.f), // not good vaule, but set in BeginPlay
 	CameraZoomedFOV(35.f),
 	CameraCurrentFOV(0.f),
 	ZoomInterpSpeed(30.f)
-
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -178,6 +189,12 @@ void AFPSCharacter::Tick(float DeltaTime)
 
 	// set FOV with Interpolation when aiming
 	CameraInterpZoom(DeltaTime);
+
+	// Tick 마다 bAiming 값에 따라 Base Rate 값을 바꿔주는 형식 (감도)
+	SetLookRates();
+	
+	// Calculate crosshair spread multiplier
+	CalculateCrosshairSpread(DeltaTime);
 }
 
 // Called to bind functionality to input
@@ -190,8 +207,8 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	PlayerInputComponent->BindAxis("MoveRight", this, &AFPSCharacter::MoveRight);
 	PlayerInputComponent->BindAxis("TurnRate", this, &AFPSCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AFPSCharacter::LookUpAtRate);
-	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("Turn", this, &AFPSCharacter::Turn);
+	PlayerInputComponent->BindAxis("LookUp", this, &AFPSCharacter::LookUp);
 
 	// "action" 바인딩 구성
 	//PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AFPSCharacter::StartJump);
@@ -260,6 +277,34 @@ void AFPSCharacter::TurnAtRate(float Rate)
 void AFPSCharacter::LookUpAtRate(float Rate)
 {
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+}
+
+void AFPSCharacter::Turn(float Value)
+{
+	float TurnScaleFactor{};
+	if (bAiming)
+	{
+		TurnScaleFactor = MouseAimingTurnRate;
+	}
+	else
+	{
+		TurnScaleFactor = MouseHipTurnRate;
+	}
+	AddControllerYawInput(Value * TurnScaleFactor);
+}
+
+void AFPSCharacter::LookUp(float Value)
+{
+	float LookUpScaleFactor{};
+	if (bAiming)
+	{
+		LookUpScaleFactor = MouseAimingLookUpRate;
+	}
+	else
+	{
+		LookUpScaleFactor = MouseHipLookUpRate;
+	}
+	AddControllerPitchInput(Value * LookUpScaleFactor);
 }
 
 void AFPSCharacter::StartRaycast()
@@ -463,6 +508,40 @@ void AFPSCharacter::CameraInterpZoom(float DeltaTime)
 			ZoomInterpSpeed);
 	}
 	GetFollowCamera()->SetFieldOfView(CameraCurrentFOV);
+}
+
+void AFPSCharacter::SetLookRates()
+{
+	if (bAiming)
+	{
+		BaseTurnRate = AimingTurnRate;
+		BaseLookUpRate = AimingLookUpRate;
+	}
+	else
+	{
+		BaseTurnRate = HipTurnRate;
+		BaseLookUpRate = HipLookUpRate;
+	}
+}
+
+void AFPSCharacter::CalculateCrosshairSpread(float DeltaTime)
+{
+	FVector2D WalkSpreadRange{ 0.f, 600.f };
+	FVector2D VelocityMultiplierRange{ 0.f, 1.f };
+	FVector Velocity{ GetVelocity() };
+	Velocity.Z = 0.f;
+
+	CrosshairVelocityFactor = FMath::GetMappedRangeValueClamped(
+		WalkSpreadRange, 
+		VelocityMultiplierRange,
+		Velocity.Size());
+
+	CrosshairSpreadMultiplier = 0.5f + CrosshairVelocityFactor; // always 0.5 ~ 1.5
+}
+
+float AFPSCharacter::GetCrosshairSpreadMultiplier() const
+{
+	return CrosshairSpreadMultiplier;
 }
 
 void AFPSCharacter::Sliding()

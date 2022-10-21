@@ -64,6 +64,8 @@ Build
 _BuiltData.uasset
 
 # assets and animations
+Content/_Game/Assets
+Content/_Game/Character/Animations
 Content/Assets
 Content/MilitaryWeapSilver
 Content/StarterContent
