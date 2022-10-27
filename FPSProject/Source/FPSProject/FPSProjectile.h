@@ -49,6 +49,9 @@ public:
 
 	UPROPERTY()
 	FTimerHandle ExplosionTimer;
+private:
+	UPROPERTY(EditAnywhere)
+	float RotateSpeed = 120.f;
 
 public:
 	UFUNCTION()

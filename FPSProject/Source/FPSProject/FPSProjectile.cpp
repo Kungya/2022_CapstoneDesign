@@ -90,6 +90,10 @@ void AFPSProjectile::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	// 기울어진 상태로 시작
+	AddActorLocalRotation(FRotator(-45.f, 0.f, 0.f));
+	
+	
 	GetWorldTimerManager().SetTimer(ExplosionTimer, this, &AFPSProjectile::Detonate, 1.95f, false);
 }
 
@@ -97,6 +101,8 @@ void AFPSProjectile::BeginPlay()
 void AFPSProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	AddActorWorldRotation(FRotator(RotateSpeed * DeltaTime, 3 * RotateSpeed * DeltaTime, RotateSpeed * DeltaTime));
 
 }
 // You only needed to supply a launch direction because the projectile's speed is defined by 'ProjectileMovementComponent'.

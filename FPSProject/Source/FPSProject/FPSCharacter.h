@@ -73,6 +73,19 @@ protected:
 	void SetLookRates();
 
 	void CalculateCrosshairSpread(float DeltaTime);
+	
+	void StartCrosshairBulletFire();
+
+	UFUNCTION()
+	void FinishCrosshairBulletFire();
+
+	void FireButtonPressed();
+	void FireButtonReleased();
+
+	void StartFireTimer();
+
+	UFUNCTION()
+	void AutoFireReset();
 
 	// Projectile class to spawn.
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
@@ -126,8 +139,6 @@ private:
 	/** Scale factor for mouse sensitivity, LookUp(Y) when aiming  */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"), meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
 	float MouseAimingLookUpRate;
-
-
 
 	/** Randomized gunshot sound cue */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
@@ -184,6 +195,27 @@ private:
 	/** Shooting component for crosshairs spread */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crosshairs, meta = (AllowPrivateAccess = "true"))
 	float CrosshairShootingFactor;
+
+	float ShootTimeDuration;
+
+	bool bFiringBullet;
+
+	FTimerHandle CrosshairShootTimer;
+
+	/** Left mouse button or right console trigger pressed */
+	bool bFireButtonPressed;
+
+	/** Ture when we can fire / False when waiting for the timer */
+	bool bShouldFire;
+
+	/** 연사속도 */
+	float AutomaticFireRate;
+
+	/** 연사 타이머, Sets a timer between gunshots */
+	FTimerHandle AutoFireTimer;
+
+	UPROPERTY()
+	TWeakObjectPtr<AActor> HitActorInfo;
 
 
 

@@ -41,7 +41,22 @@ AFPSCharacter::AFPSCharacter() :
 	CameraDefaultFOV(0.f), // not good vaule, but set in BeginPlay
 	CameraZoomedFOV(35.f),
 	CameraCurrentFOV(0.f),
-	ZoomInterpSpeed(30.f)
+	ZoomInterpSpeed(30.f),
+	// Crosshair spread factors
+	CrosshairSpreadMultiplier(0.f),
+	CrosshairVelocityFactor(0.f),
+	CrosshairInAirFactor(0.f),
+	CrosshairAimFactor(0.f),
+	CrosshairShootingFactor(0.f),
+	// Bullet fire timer vaiables
+	ShootTimeDuration(0.05f),
+	bFiringBullet(false),
+	// Automatic fire variables
+	// 연사속도, 0.1f = 초당 10회, 그리고 CrosshairSpread timer rate보다 무조건 커야한다(0.05 사용중)
+	AutomaticFireRate(0.1f),
+	bShouldFire(true),
+	bFireButtonPressed(false)
+
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -219,9 +234,10 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	PlayerInputComponent->BindAction("Sliding", IE_Pressed, this, &AFPSCharacter::Sliding);
 
 	// "Fire" 바인딩 구성
-	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFPSCharacter::Fire);
+	PlayerInputComponent->BindAction("FireProjectile", IE_Pressed, this, &AFPSCharacter::Fire);
 	// "RayCast" 바인딩 구성
-	PlayerInputComponent->BindAction("FireButton", IE_Pressed, this, &AFPSCharacter::Raycast);
+	PlayerInputComponent->BindAction("FireButton", IE_Pressed, this, &AFPSCharacter::FireButtonPressed);
+	PlayerInputComponent->BindAction("FireButton", IE_Released, this, &AFPSCharacter::FireButtonReleased);
 	// Aiming
 	PlayerInputComponent->BindAction("AimingButton", IE_Pressed, this, &AFPSCharacter::AimingButtonPressed);
 	PlayerInputComponent->BindAction("AimingButton", IE_Released, this, &AFPSCharacter::AimingButtonReleased);
@@ -337,6 +353,12 @@ void AFPSCharacter::Raycast()
 		bool bBeamEnd = GetBeamEndLocation(
 			SocketTransform.GetLocation(), BeamEnd);
 
+		FPointDamageEvent PointDamageEvent;
+		if (HitActorInfo.IsValid())
+		{
+			HitActorInfo->TakeDamage(Stat->GetAttack(), PointDamageEvent, GetController(), this);
+		}
+
 		if (bBeamEnd)
 		{
 			if (ImpactParticles)
@@ -364,6 +386,9 @@ void AFPSCharacter::Raycast()
 		AnimInstance->Montage_Play(HipFireMontage);
 		AnimInstance->Montage_JumpToSection(FName("StartFire"));
 	}
+
+	// Start bullet fire timer for crosshairs
+	StartCrosshairBulletFire();
 
 	/*if (CurrAmmo <= 0 || !IsRaycasting || IsReloading)
 		return;
@@ -424,7 +449,7 @@ bool AFPSCharacter::GetBeamEndLocation(
 
 	// Get screen space location of crosshairs
 	FVector2D CrosshairLocation(ViewportSize.X / 2.f, ViewportSize.Y / 2.f);
-	CrosshairLocation.Y -= 50.f;
+	//CrosshairLocation.Y -= 50.f;
 	FVector CrosshairWorldPosition;
 	FVector CrosshairWorldDirection;
 
@@ -454,6 +479,7 @@ bool AFPSCharacter::GetBeamEndLocation(
 		{
 			// 충돌한 물체가 있을 경우, BeamEndPoint를 End에서 충돌한 물체의 Location으로 변경
 			OutBeamLocation = ScreenTraceHit.Location;
+			HitActorInfo = ScreenTraceHit.Actor;
 		}
 
 		// Second trace, from the [ gun barrel ]
@@ -468,7 +494,10 @@ bool AFPSCharacter::GetBeamEndLocation(
 		if (WeaponTraceHit.bBlockingHit)
 		{
 			OutBeamLocation = WeaponTraceHit.Location;
+			HitActorInfo = WeaponTraceHit.Actor;
 		}
+		FPointDamageEvent PointDamageEvent;
+		
 
 		return true;
 	}
@@ -536,7 +565,97 @@ void AFPSCharacter::CalculateCrosshairSpread(float DeltaTime)
 		VelocityMultiplierRange,
 		Velocity.Size());
 
-	CrosshairSpreadMultiplier = 0.5f + CrosshairVelocityFactor; // always 0.5 ~ 1.5
+	// Calculate crosshair in air factor
+	if (GetCharacterMovement()->IsFalling())
+	{
+		// Spread the crosshairs slowly while in air
+		CrosshairInAirFactor = FMath::FInterpTo(CrosshairInAirFactor, 2.25f, DeltaTime, 2.25f);
+	}
+	else
+	{
+		// Shrink the crosshairs rapidly while on the ground
+		CrosshairInAirFactor = FMath::FInterpTo(CrosshairInAirFactor, 0.f, DeltaTime, 30.f);
+	}
+
+	// Calcuate crosshair aim factor
+	if (bAiming)
+	{
+		// Shrink
+		CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, 0.6f, DeltaTime, 30.f);
+	}
+	else
+	{
+		// Spread
+		CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, 0.f, DeltaTime, 30.f);
+	}
+
+	// True during 0.05 second (ShootTimeDuration) after firing
+	if (bFiringBullet)
+	{
+		// Spread
+		CrosshairShootingFactor = FMath::FInterpTo(CrosshairShootingFactor, 0.3f, DeltaTime, 60.f);
+	}
+	else
+	{
+		// Shrink
+		CrosshairShootingFactor = FMath::FInterpTo(CrosshairShootingFactor, 0.f, DeltaTime, 60.f);
+	}
+
+	CrosshairSpreadMultiplier = 
+		0.5f + 
+		CrosshairVelocityFactor + 
+		CrosshairInAirFactor - 
+		CrosshairAimFactor +
+		CrosshairShootingFactor;
+}
+
+void AFPSCharacter::StartCrosshairBulletFire()
+{
+	bFiringBullet = true;
+
+	GetWorldTimerManager().SetTimer(
+		CrosshairShootTimer, 
+		this, 
+		&AFPSCharacter::FinishCrosshairBulletFire, 
+		ShootTimeDuration);
+}
+
+void AFPSCharacter::FinishCrosshairBulletFire()
+{
+	bFiringBullet = false;
+}
+
+void AFPSCharacter::FireButtonPressed()
+{
+	bFireButtonPressed = true;
+
+	StartFireTimer();
+}
+
+void AFPSCharacter::FireButtonReleased()
+{
+	bFireButtonPressed = false;
+}
+
+void AFPSCharacter::StartFireTimer()
+{
+	if (bShouldFire)
+	{
+		Raycast();
+		bShouldFire = false;
+
+		GetWorldTimerManager().SetTimer(AutoFireTimer, this, &AFPSCharacter::AutoFireReset, AutomaticFireRate);
+	}
+}
+
+void AFPSCharacter::AutoFireReset()
+{
+	bShouldFire = true;
+
+	if (bFireButtonPressed)
+	{
+		StartFireTimer();
+	}
 }
 
 float AFPSCharacter::GetCrosshairSpreadMultiplier() const
