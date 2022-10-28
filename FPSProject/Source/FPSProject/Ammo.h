@@ -4,16 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Potion.generated.h"
+#include "Ammo.generated.h"
 
 UCLASS()
-class FPSPROJECT_API APotion : public AActor
+class FPSPROJECT_API AAmmo : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	APotion();
+	AAmmo();
 
 protected:
 	// Called when the game starts or when spawned
@@ -23,14 +23,14 @@ protected:
 
 protected:
 	UFUNCTION()
-	void OnCharacterOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+		void OnCharacterOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(VisibleAnywhere)
-	UStaticMeshComponent* PotionMesh;
+	UStaticMeshComponent* AmmoMesh;
 
 	UPROPERTY(VisibleAnywhere)
 	class UBoxComponent* Trigger;

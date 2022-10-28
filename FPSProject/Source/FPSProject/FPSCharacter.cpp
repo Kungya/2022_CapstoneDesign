@@ -245,7 +245,7 @@ void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	//PlayerInputComponent->BindAction("Raycast", IE_Pressed, this, &AFPSCharacter::StartRaycast);
 	//PlayerInputComponent->BindAction("Raycast", IE_Released, this, &AFPSCharacter::StopRaycast);
 	// "Relodaing" 바인딩
-	//PlayerInputComponent->BindAction("Reloading", IE_Pressed, this, &AFPSCharacter::Reloading);
+	PlayerInputComponent->BindAction("Reloading", IE_Pressed, this, &AFPSCharacter::Reloading);
 	// 실험용, HP감소
 	PlayerInputComponent->BindAction("DecreaseHp", IE_Pressed, this, &AFPSCharacter::DecreaseHp);
 
@@ -386,6 +386,12 @@ void AFPSCharacter::Raycast()
 		AnimInstance->Montage_Play(HipFireMontage);
 		AnimInstance->Montage_JumpToSection(FName("StartFire"));
 	}
+
+	if (CurrAmmo <= 0)
+		return;
+
+	--CurrAmmo;
+	RefreshAmmoUI();
 
 	// Start bullet fire timer for crosshairs
 	StartCrosshairBulletFire();
@@ -748,7 +754,7 @@ void AFPSCharacter::RefreshAmmoUI() // 전역으로 땡겨오는 형식, 이렇게 프레임워크
 		UFPSCharacterHUD* FPSCharacterHUD = Cast<UFPSCharacterHUD>(GameMode->CurrentWidget);
 		if (FPSCharacterHUD)
 		{
-			const FString AmmoStr = FString::Printf(TEXT("Ammo %01d / %01d"), CurrAmmo, SpareAmmo);
+			const FString AmmoStr = FString::Printf(TEXT("%01d / %01d"), CurrAmmo, SpareAmmo);
 			FPSCharacterHUD->AmmoText->SetText(FText::FromString(AmmoStr));
 		}
 	}
@@ -772,8 +778,22 @@ void AFPSCharacter::Reloading()
 {
 	if (SpareAmmo == 0 || CurrAmmo == MaxAmmo || IsReloading || IsRaycasting)
 		return;
+
+	if (SpareAmmo - (MaxAmmo - CurrAmmo) < 0)
+		{
+		// 3발 여유가 남아있는데 2/6 인 상황, 그러면 +3만 해주어야한다
+			CurrAmmo += SpareAmmo;
+			SpareAmmo = 0;
+		}
+		else
+		{
+			SpareAmmo -= (MaxAmmo - CurrAmmo);
+			CurrAmmo = MaxAmmo;
+		}
+	RefreshAmmoUI();
+
 	// TODO : IsReloading을 조절해주는 StartReloading, StopReloaidng... 설정
-	IsReloading = true;
+	//IsReloading = true;
 
 	//AnimInstanceFPP->PlayReloadingMontage();
 	//WeaponAnimInstance->PlayWeaponReloadingMontage();
@@ -831,4 +851,10 @@ bool AFPSCharacter::GetIsRaycasting()
 bool AFPSCharacter::GetIsReloading()
 {
 	return IsReloading;
+}
+
+void AFPSCharacter::AddAmmo()
+{
+	SpareAmmo += 30;
+	RefreshAmmoUI();
 }

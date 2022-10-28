@@ -310,6 +310,10 @@ private:
 	int32 CurrAmmo = 30;
 	int32 MaxAmmo = 30;
 	int32 SpareAmmo = 120;
+
+public:
+	UFUNCTION()
+	void AddAmmo();
 };
 // FPSProejctile Actor 스폰시, OnFire 함수 구현에 있어 두 가지 고려 사항이 있음.
 	// 1) 발사체 스폰 위치
