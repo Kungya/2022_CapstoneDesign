@@ -16,6 +16,7 @@
 #include "Components/TextBlock.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "FPSCharacterStatComponent.h"
+#include "Item.h"
 #include "Components/WidgetComponent.h"
 #include "FPSCharacterWidget.h"
 #include "Components/ProgressBar.h"
@@ -210,6 +211,19 @@ void AFPSCharacter::Tick(float DeltaTime)
 	
 	// Calculate crosshair spread multiplier
 	CalculateCrosshairSpread(DeltaTime);
+
+	FHitResult ItemTraceResult;
+	FVector HitLocation;
+	TraceUnderCrosshairs(ItemTraceResult, HitLocation);
+	if (ItemTraceResult.bBlockingHit)
+	{
+		AItem* HitItem = Cast<AItem>(ItemTraceResult.Actor);
+		if (HitItem && HitItem->GetPickupWidget())
+		{
+			// Show Item's Pickup Widget
+			HitItem->GetPickupWidget()->SetVisibility(true);
+		}
+	}
 }
 
 // Called to bind functionality to input
@@ -332,6 +346,9 @@ void AFPSCharacter::StartRaycast()
 
 void AFPSCharacter::Raycast()
 {
+	if (CurrAmmo <= 0)
+		return;
+
 	if (FireSound)
 	{
 		UGameplayStatics::PlaySound2D(this, FireSound);
@@ -387,8 +404,6 @@ void AFPSCharacter::Raycast()
 		AnimInstance->Montage_JumpToSection(FName("StartFire"));
 	}
 
-	if (CurrAmmo <= 0)
-		return;
 
 	--CurrAmmo;
 	RefreshAmmoUI();
@@ -446,6 +461,44 @@ bool AFPSCharacter::GetBeamEndLocation(
 	const FVector& MuzzleSocketLocation,
 	FVector& OutBeamLocation)
 {
+	// Check for crosshair trace hit
+	FHitResult CrosshairHitResult;
+	bool bCrosshairHit = TraceUnderCrosshairs(CrosshairHitResult, OutBeamLocation);
+
+	if (bCrosshairHit)
+	{
+		// Tentative beam location - still need to trace from gun
+		OutBeamLocation = CrosshairHitResult.Location;
+	}
+	else // no crosshair trace hit
+	{
+		// OutBeamLocation is the End location for the line trace
+	}
+
+	// Perform trace from gun barrel
+	// Second trace, from the [ gun barrel ]
+	FHitResult WeaponTraceHit;
+	const FVector WeaponTraceStart{ MuzzleSocketLocation };
+	// 보충 설명 - 일부만 벽에 닿는 오류를 해결하기 위해 소켓에서 발사되는 두번째 trace의 길이를 좀 더 확장
+	const FVector StartToEnd{ OutBeamLocation - MuzzleSocketLocation };
+	const FVector WeaponTraceEnd{ MuzzleSocketLocation + StartToEnd * 1.25f };
+	/*const FVector WeaponTraceEnd{ OutBeamLocation };*/
+
+	GetWorld()->LineTraceSingleByChannel(
+		WeaponTraceHit,
+		WeaponTraceStart,
+		WeaponTraceEnd,
+		ECollisionChannel::ECC_Visibility);
+
+	if (WeaponTraceHit.bBlockingHit)
+	{
+		OutBeamLocation = WeaponTraceHit.Location;
+		HitActorInfo = WeaponTraceHit.Actor;
+		return true;
+	}
+	return false;
+	
+	/*
 	// Gut current size of the viewport
 	FVector2D ViewportSize;
 	if (GEngine && GEngine->GameViewport)
@@ -470,8 +523,8 @@ bool AFPSCharacter::GetBeamEndLocation(
 		const FVector Start{ CrosshairWorldPosition };
 		const FVector End{ CrosshairWorldPosition + CrosshairWorldDirection * 50'000.f };
 
-		/* BeamEndPoint를 미리 End로 지정해놓음, 도중 충돌한 물체가 있다면 End를 바꾸고, 아니면
-		 End까지 Beam 효과를 내겠다는 뜻 */
+		//BeamEndPoint를 미리 End로 지정해놓음, 도중 충돌한 물체가 있다면 End를 바꾸고, 아니면
+		//End까지 Beam 효과를 내겠다는 뜻
 		OutBeamLocation = End;
 
 		// Trace from corsshairs world location
@@ -502,13 +555,15 @@ bool AFPSCharacter::GetBeamEndLocation(
 			OutBeamLocation = WeaponTraceHit.Location;
 			HitActorInfo = WeaponTraceHit.Actor;
 		}
-		FPointDamageEvent PointDamageEvent;
+		//FPointDamageEvent PointDamageEvent;
 		
 
 		return true;
 	}
 
 	return false;
+	*/
+
 }
 
 void AFPSCharacter::AimingButtonPressed()
@@ -663,6 +718,56 @@ void AFPSCharacter::AutoFireReset()
 		StartFireTimer();
 	}
 }
+
+bool AFPSCharacter::TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutHitLocation)
+{
+	// Get Viewport Size
+	// Gut current size of the viewport
+	FVector2D ViewportSize;
+	if (GEngine && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->GetViewportSize(ViewportSize);
+	}
+
+	// Get screen space location of crosshairs
+	FVector2D CrosshairLocation(ViewportSize.X / 2.f, ViewportSize.Y / 2.f);
+	FVector CrosshairWorldPostion;
+	FVector CrosshairWorldDirection;
+
+	// Get world position and direction of crosshairs
+	bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(
+		UGameplayStatics::GetPlayerController(this, 0),
+		CrosshairLocation,
+		CrosshairWorldPostion,
+		CrosshairWorldDirection);
+
+	if (bScreenToWorld)
+	{
+		// Trace from Crosshair world location outward
+		const FVector Start{ CrosshairWorldPostion };
+		const FVector End{ Start + CrosshairWorldDirection * 50'000.f };
+		OutHitLocation = End; //
+
+		GetWorld()->LineTraceSingleByChannel(
+			OutHitResult,
+			Start,
+			End,
+			ECollisionChannel::ECC_Visibility);
+
+		if (OutHitResult.bBlockingHit)
+		{
+			OutHitLocation = OutHitResult.Location;
+			HitActorInfo = OutHitResult.Actor;
+
+			return true;
+		}
+		return false;
+	}
+
+	return false;
+}
+
+
 
 float AFPSCharacter::GetCrosshairSpreadMultiplier() const
 {
