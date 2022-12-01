@@ -55,8 +55,10 @@ void APotion_S_MP::OnCharacterOverlap(UPrimitiveComponent* OverlappedComp, AActo
 	AFPSCharacter* FPSCharacter = Cast<AFPSCharacter>(OtherActor);
 	if (FPSCharacter)
 	{
-		FDamageEvent DamageEvent_ManaPotion;
+		//FDamageEvent DamageEvent_ManaPotion;
 		// TODO : 
+		FPSCharacter->Stat->OnSkill(-20);
+		FPSCharacter->RefreshStatUI();
 
 		Destroy();
 	}

@@ -30,6 +30,7 @@ public:
 	void SetHp(int32 NewHp);
 	void SetMp(int32 NewMp);
 	void OnAttacked(float DamageAmount);
+	void UseMp(float Usage);
 	bool OnSkill(float MpAmount);
 	void HealHp(float HealAmount);
 	void HealMp(float HealAmount);

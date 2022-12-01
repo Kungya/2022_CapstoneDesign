@@ -12,6 +12,7 @@ void UFPSCharacterWidget::BindHp(class UFPSCharacterStatComponent* StatComp)
 	CurrentStatComp = StatComp;
 	// 람다함수를 연결해줄 수도 있고, 내부적으로 정의된 함수를 연동해주고 싶으면 AddUObject
 	StatComp->OnHpChanged.AddUObject(this, &UFPSCharacterWidget::UpdateHp);
+	/*StatComp->OnMpChanged.AddUObject(this, &UFPSCharacterWidget::UpdateMp);*/
 }
 
 void UFPSCharacterWidget::UpdateHp()
