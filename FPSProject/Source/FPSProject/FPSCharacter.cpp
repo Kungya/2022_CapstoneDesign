@@ -363,7 +363,9 @@ void AFPSCharacter::Raycast()
 		FPointDamageEvent PointDamageEvent;
 		if (HitActorInfo.IsValid())
 		{
+			UE_LOG(LogTemp, Warning, TEXT("HitActorInfo : %s"), HitActroInfo->GetName());
 			HitActorInfo->TakeDamage(Stat->GetAttack(), PointDamageEvent, GetController(), this);
+			
 		}
 
 		if (bBeamEnd)
@@ -479,6 +481,7 @@ bool AFPSCharacter::GetBeamEndLocation(
 		WeaponTraceStart,
 		WeaponTraceEnd,
 		ECollisionChannel::ECC_Visibility);
+	DrawDebugLine(GetWorld(), WeaponTraceStart, WeaponTraceEnd, FColor::Red, false, 2.f, 0.f, 1.f);
 
 	if (WeaponTraceHit.bBlockingHit)
 	{
@@ -734,8 +737,23 @@ bool AFPSCharacter::TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutH
 	if (bScreenToWorld)
 	{
 		// Trace from Crosshair world location outward
+		// CrosshairWorldDirection :: 최종적으로 방향을 가지고있는 단위벡터 (Normalized Vector)
+		//FVector RandomizedDirection = CrosshairWorldDirection.RotateAngleAxis();
+
+		//UE_LOG(LogTemp, Log, TEXT("CrosshairWorldDirection :: %s"), CrosshairWorldDirection.ToString());
+		UE_LOG(LogTemp, Log, TEXT("CrosshairWorldDirection :: %s"), *CrosshairWorldDirection.ToString());
+		/*------------------------*/
+		FVector SphericalDirection;
+		FVector CrosshairDistributedDirection;
+		RandomizedSphericalDistribution(SphericalDirection);
+		CrosshairDistributedDirection = CrosshairWorldDirection + SphericalDirection;
+		//CrosshairDistributedDirection.Normalize(1.f);
+
+		UE_LOG(LogTemp, Log, TEXT("CrosshairDistributedDirection :: %s"), *CrosshairDistributedDirection.ToString());
+
 		const FVector Start{ CrosshairWorldPostion };
-		const FVector End{ Start + CrosshairWorldDirection * 50'000.f };
+		const FVector End{ Start + CrosshairDistributedDirection * 50'000.f};
+		//const FVector End{ Start + CrosshairWorldDirection * 50'000.f };
 		OutHitLocation = End; //
 
 		GetWorld()->LineTraceSingleByChannel(
@@ -755,6 +773,22 @@ bool AFPSCharacter::TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutH
 	}
 
 	return false;
+}
+
+bool AFPSCharacter::RandomizedSphericalDistribution(FVector& OutDistributedVector)
+{
+	float D, x, y, z;
+	
+	do {
+		x = FMath::RandRange(-0.02f, 0.02f); // -0.01 ~ 0.01
+		y = FMath::RandRange(-0.02f, 0.02f); // -0.01 ~ 0.01
+		z = FMath::RandRange(-0.02f, 0.02f); // -0.01 ~ 0.01
+		D = x * x + y * y + z * z;
+	} while (D > 0.0016f);
+
+	OutDistributedVector = { x, y, z };
+
+	return true;
 }
 
 void AFPSCharacter::TraceForItems()

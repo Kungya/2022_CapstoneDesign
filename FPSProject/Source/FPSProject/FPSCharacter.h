@@ -90,6 +90,9 @@ protected:
 	/** Line trace for items under the crosshairs */
 	bool TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutHitLocation);
 
+	/** Create Spherical Distribution of Vector to raycast */
+	bool RandomizedSphericalDistribution(FVector& OutDistributedVector);
+
 	/** Trace for items if OverlappedItemCount > 0 */
 	void TraceForItems();
 
