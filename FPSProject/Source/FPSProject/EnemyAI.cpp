@@ -48,6 +48,7 @@ void AEnemyAI::OnUnPossess()
 
 void AEnemyAI::RandomMove()
 {
+	
 	auto CurrentPawn = GetPawn();
 
 	UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetNavigationSystem(GetWorld());

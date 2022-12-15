@@ -7,6 +7,8 @@
 #include "BulletHitInterface.h"
 #include "Enemy.generated.h"
 
+DECLARE_MULTICAST_DELEGATE(FOnAttackEnd);
+
 UCLASS()
 class FPSPROJECT_API AEnemy : public ACharacter, public IBulletHitInterface
 {
@@ -21,6 +23,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	virtual void PostInitializeComponents() override;
+public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta =(AllowPrivateAccess="true"))
 	class UParticleSystem* Impactparticles;
@@ -35,30 +38,44 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	float MaxHealth;
 
-public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	virtual void BulletHit_Implementation(FHitResult HitResult) override;
+	void Attack();
+	void AttackCheck();
 
-	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	FOnAttackEnd OnAttackEnd;
+
+	//virtual void BulletHit_Implementation(FHitResult HitResult) override;
+
+	//virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 	void UpDown(float Value);
 	void LeftRight(float Value);
 	void Yaw(float Value);
 
-	//UFUNCTION()
-	//void OnAttackMontageEnded(class UAnimMontage* Montage, bool binterrupted);
+	UFUNCTION()
+	void OnAttackMontageEnded(class UAnimMontage* Montage, bool binterrupted);
+
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+private:
+	UPROPERTY(VisibleAnywhere, Category = Pawn)
+	bool IsAttacking = false;
 
 	UPROPERTY()
 	class UEnemyAnimInstance* AnimInstance;
+
+public:
 
 	UPROPERTY()
 	float UpDownValue = 0;
 
 	UPROPERTY()
 	float LeftRightValue = 0;
+
+	UPROPERTY(VisibleAnywhere)
+	class UFPSCharacterStatComponent* Stat;
 };

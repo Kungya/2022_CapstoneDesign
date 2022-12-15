@@ -28,11 +28,15 @@ EBTNodeResult::Type UBTEnemy_Patrol::ExecuteTask(UBehaviorTreeComponent& OwnerCo
 
 	FNavLocation RandomLocation;
 
+	UE_LOG(LogTemp, Log, TEXT("patrol"));
 	if (NavSystem->GetRandomPointInNavigableRadius(FVector::ZeroVector, 500.f, RandomLocation))
 	{
+		UE_LOG(LogTemp, Log, TEXT("patrol2"));
 		//UAIBlueprintHelperLibrary::SimpleMoveToLocation(this, RandomLocation);
 		OwnerComp.GetBlackboardComponent()->SetValueAsVector(FName(TEXT("PatrolPos")), RandomLocation.Location);
+		UE_LOG(LogTemp, Log, TEXT("patrol3"));
 		return EBTNodeResult::Succeeded;
 	}
+	UE_LOG(LogTemp, Log, TEXT("patrol4"))
 	return EBTNodeResult::Failed;
 }
