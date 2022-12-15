@@ -4,16 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Ammo.generated.h"
+#include "Item_LevelUp.generated.h"
 
 UCLASS()
-class FPSPROJECT_API AAmmo : public AActor
+class FPSPROJECT_API AItem_LevelUp : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	AAmmo();
+	AItem_LevelUp();
 
 protected:
 	// Called when the game starts or when spawned
@@ -30,7 +30,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(VisibleAnywhere)
-	UStaticMeshComponent* AmmoMesh;
+	UStaticMeshComponent* LevelUpMesh;
 
 	UPROPERTY(VisibleAnywhere)
 	class UBoxComponent* Trigger;

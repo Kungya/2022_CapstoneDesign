@@ -60,7 +60,7 @@ AFPSProjectile::AFPSProjectile()
 		ProjectileMaterialInstance = UMaterialInstanceDynamic::Create(Material.Object, ProjectileMeshComponent);
 	}
 	ProjectileMeshComponent->SetMaterial(0, ProjectileMaterialInstance);
-	ProjectileMeshComponent->SetRelativeScale3D(FVector(1.2f, 1.2f, 1.2f)); //크기 조정
+	ProjectileMeshComponent->SetRelativeScale3D(FVector(1.4f, 1.4f, 1.4f)); //크기 조정
 	ProjectileMeshComponent->SetupAttachment(RootComponent);
 
 	// 2초 후 사라짐

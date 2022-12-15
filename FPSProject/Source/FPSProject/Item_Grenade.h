@@ -4,16 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Ammo.generated.h"
+#include "Item_Grenade.generated.h"
 
 UCLASS()
-class FPSPROJECT_API AAmmo : public AActor
+class FPSPROJECT_API AItem_Grenade : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	AAmmo();
+	AItem_Grenade();
 
 protected:
 	// Called when the game starts or when spawned
@@ -30,7 +30,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(VisibleAnywhere)
-	UStaticMeshComponent* AmmoMesh;
+	UStaticMeshComponent* GrenadeMesh;
 
 	UPROPERTY(VisibleAnywhere)
 	class UBoxComponent* Trigger;
@@ -38,4 +38,5 @@ public:
 private:
 	UPROPERTY(EditAnywhere)
 	float RotateSpeed = 120.f;
+
 };

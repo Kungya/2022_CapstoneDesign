@@ -17,6 +17,8 @@ class FPSPROJECT_API UFPSCharacterHUD : public UUserWidget
 public: // set get을 달아주는게 일반적이나 실습에선 우선 public 설정
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* AmmoText;
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* GrenadeText;
 
 	// UI의 데이터와 실제 로직의 데이터가 헷갈릴 수 있어 여기서 혼용하면 안됨
 

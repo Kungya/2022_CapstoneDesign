@@ -296,6 +296,10 @@ public:
 
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
+
+	void LevelUp();
+
+
 	UPROPERTY(EditAnywhere)
 	USceneCaptureComponent2D* MiniMapCapture;
 
@@ -331,10 +335,14 @@ private:
 	int32 CurrAmmo = 30;
 	int32 MaxAmmo = 30;
 	int32 SpareAmmo = 120;
+	int32 CurrGrenade = 5;
 
 public:
 	UFUNCTION()
 	void AddAmmo();
+
+	UFUNCTION()
+	void AddGrenade();
 };
 // FPSProejctile Actor 스폰시, OnFire 함수 구현에 있어 두 가지 고려 사항이 있음.
 	// 1) 발사체 스폰 위치

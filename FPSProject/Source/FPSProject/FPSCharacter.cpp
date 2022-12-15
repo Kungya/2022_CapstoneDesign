@@ -363,7 +363,7 @@ void AFPSCharacter::Raycast()
 		FPointDamageEvent PointDamageEvent;
 		if (HitActorInfo.IsValid())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("HitActorInfo : %s"), HitActroInfo->GetName());
+			UE_LOG(LogTemp, Warning, TEXT("HitActorInfo : %s"), *HitActorInfo->GetName());
 			HitActorInfo->TakeDamage(Stat->GetAttack(), PointDamageEvent, GetController(), this);
 			
 		}
@@ -741,7 +741,7 @@ bool AFPSCharacter::TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutH
 		//FVector RandomizedDirection = CrosshairWorldDirection.RotateAngleAxis();
 
 		//UE_LOG(LogTemp, Log, TEXT("CrosshairWorldDirection :: %s"), CrosshairWorldDirection.ToString());
-		UE_LOG(LogTemp, Log, TEXT("CrosshairWorldDirection :: %s"), *CrosshairWorldDirection.ToString());
+		//UE_LOG(LogTemp, Log, TEXT("CrosshairWorldDirection :: %s"), *CrosshairWorldDirection.ToString());
 		/*------------------------*/
 		FVector SphericalDirection;
 		FVector CrosshairDistributedDirection;
@@ -749,7 +749,7 @@ bool AFPSCharacter::TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutH
 		CrosshairDistributedDirection = CrosshairWorldDirection + SphericalDirection;
 		//CrosshairDistributedDirection.Normalize(1.f);
 
-		UE_LOG(LogTemp, Log, TEXT("CrosshairDistributedDirection :: %s"), *CrosshairDistributedDirection.ToString());
+		//UE_LOG(LogTemp, Log, TEXT("CrosshairDistributedDirection :: %s"), *CrosshairDistributedDirection.ToString());
 
 		const FVector Start{ CrosshairWorldPostion };
 		const FVector End{ Start + CrosshairDistributedDirection * 50'000.f};
@@ -864,10 +864,10 @@ void AFPSCharacter::Sliding()
 
 	SlidingTime = false;
 
-	float SlidingSpeed = 5000.f;
+	float SlidingSpeed = 4000.f;
 
 	if (GetMovementComponent()->IsFalling()) // 공중에서는 마찰이 적어 속도 하향
-		SlidingSpeed = 2000.f;
+		SlidingSpeed = 1500.f;
 
 	if (GetLastMovementInputVector() == FVector::ZeroVector)
 	{
@@ -888,6 +888,12 @@ void AFPSCharacter::SlidingTimer()
 
 void AFPSCharacter::Fire()
 {
+	if (CurrGrenade <= 0)
+		return;
+
+	--CurrGrenade;
+	RefreshAmmoUI();
+
 	// Attempt to fire a projectile.
 	if (ProjectileClass)
 	{
@@ -936,8 +942,10 @@ void AFPSCharacter::RefreshAmmoUI() // 전역으로 땡겨오는 형식, 이렇게 프레임워크
 		UFPSCharacterHUD* FPSCharacterHUD = Cast<UFPSCharacterHUD>(GameMode->CurrentWidget);
 		if (FPSCharacterHUD)
 		{
-			const FString AmmoStr = FString::Printf(TEXT("%01d / %01d"), CurrAmmo, SpareAmmo);
+			const FString AmmoStr = FString::Printf(TEXT(" : %01d / %01d"), CurrAmmo, SpareAmmo);
+			const FString GrenadeStr = FString::Printf(TEXT(" : %01d"), CurrGrenade);
 			FPSCharacterHUD->AmmoText->SetText(FText::FromString(AmmoStr));
+			FPSCharacterHUD->GrenadeText->SetText(FText::FromString(GrenadeStr));
 		}
 	}
 }
@@ -1025,6 +1033,17 @@ float AFPSCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEv
 	return DamageAmount;
 }
 
+void AFPSCharacter::LevelUp()
+{
+	if (Stat->GetLevel() < 20)
+	{
+		Stat->SetLevel(Stat->GetLevel() + 1);
+		RefreshStatUI();
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Level : %d"), Stat->GetLevel());
+}
+
 bool AFPSCharacter::GetIsRaycasting()
 {
 	return IsRaycasting;
@@ -1038,5 +1057,11 @@ bool AFPSCharacter::GetIsReloading()
 void AFPSCharacter::AddAmmo()
 {
 	SpareAmmo += 30;
+	RefreshAmmoUI();
+}
+
+void AFPSCharacter::AddGrenade()
+{
+	++CurrGrenade;
 	RefreshAmmoUI();
 }

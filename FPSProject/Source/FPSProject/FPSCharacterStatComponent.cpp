@@ -44,7 +44,7 @@ void UFPSCharacterStatComponent::SetLevel(int32 NewLevel)
 		auto StatData = FPSCharacterGameInstance->GetStatData(NewLevel);
 		if (StatData)
 		{
-			NewLevel = StatData->Level;
+			Level = StatData->Level;
 			SetHp(StatData->MaxHp); // 이렇게 해줘야 델리게이트 호출을 하기 때문에 UI 변경이 됨
 			MaxHp = StatData->MaxHp;
 			SetMp(StatData->MaxMp);
