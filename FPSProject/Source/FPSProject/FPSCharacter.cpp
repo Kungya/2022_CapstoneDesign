@@ -363,7 +363,7 @@ void AFPSCharacter::Raycast()
 		FPointDamageEvent PointDamageEvent;
 		if (HitActorInfo.IsValid())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("HitActorInfo : %s"), *HitActorInfo->GetName());
+			//UE_LOG(LogTemp, Warning, TEXT("HitActorInfo : %s"), *HitActorInfo->GetName());
 			HitActorInfo->TakeDamage(Stat->GetAttack(), PointDamageEvent, GetController(), this);
 			
 		}
@@ -377,7 +377,7 @@ void AFPSCharacter::Raycast()
 					ImpactParticles,
 					BeamEnd);
 			}
-
+			
 			UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
 				GetWorld(),
 				BeamParticles,
@@ -481,7 +481,7 @@ bool AFPSCharacter::GetBeamEndLocation(
 		WeaponTraceStart,
 		WeaponTraceEnd,
 		ECollisionChannel::ECC_Visibility);
-	DrawDebugLine(GetWorld(), WeaponTraceStart, WeaponTraceEnd, FColor::Red, false, 2.f, 0.f, 1.f);
+	//DrawDebugLine(GetWorld(), WeaponTraceStart, WeaponTraceEnd, FColor::Red, false, 20.f, 0.f, 1.f);
 
 	if (WeaponTraceHit.bBlockingHit)
 	{
@@ -747,7 +747,7 @@ bool AFPSCharacter::TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutH
 		FVector CrosshairDistributedDirection;
 		RandomizedSphericalDistribution(SphericalDirection);
 		CrosshairDistributedDirection = CrosshairWorldDirection + SphericalDirection;
-		//CrosshairDistributedDirection.Normalize(1.f);
+		CrosshairDistributedDirection.Normalize(1.f);
 
 		//UE_LOG(LogTemp, Log, TEXT("CrosshairDistributedDirection :: %s"), *CrosshairDistributedDirection.ToString());
 
@@ -780,10 +780,12 @@ bool AFPSCharacter::RandomizedSphericalDistribution(FVector& OutDistributedVecto
 	float D, x, y, z;
 	
 	do {
-		x = FMath::RandRange(-0.02f, 0.02f); // -0.01 ~ 0.01
-		y = FMath::RandRange(-0.02f, 0.02f); // -0.01 ~ 0.01
-		z = FMath::RandRange(-0.02f, 0.02f); // -0.01 ~ 0.01
+		x = FMath::RandRange(-0.02f, 0.02f); // -0.04 ~ 0.04
+		y = FMath::RandRange(-0.02f, 0.02f); // -0.04 ~ 0.04
+		z = FMath::RandRange(-0.02f, 0.02f); // -0.04 ~ 0.04
+		
 		D = x * x + y * y + z * z;
+
 	} while (D > 0.0016f);
 
 	OutDistributedVector = { x, y, z };

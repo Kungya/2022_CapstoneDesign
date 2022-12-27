@@ -17,7 +17,7 @@ void UFPSCharacterWidget::BindHp(class UFPSCharacterStatComponent* StatComp)
 
 void UFPSCharacterWidget::UpdateHp()
 {
-	UE_LOG(LogTemp, Warning, TEXT("UpdateHp"));
+	//UE_LOG(LogTemp, Warning, TEXT("UpdateHp"));
 	if (CurrentStatComp.IsValid())
 		PB_HpBar->SetPercent(CurrentStatComp->GetHpRatio());
 }
