@@ -363,7 +363,7 @@ void AFPSCharacter::Raycast()
 		FPointDamageEvent PointDamageEvent;
 		if (HitActorInfo.IsValid())
 		{
-			//UE_LOG(LogTemp, Warning, TEXT("HitActorInfo : %s"), *HitActorInfo->GetName());
+			UE_LOG(LogTemp, Warning, TEXT("HitActorInfo : %s"), *HitActorInfo->GetName());
 			HitActorInfo->TakeDamage(Stat->GetAttack(), PointDamageEvent, GetController(), this);
 			
 		}
@@ -377,7 +377,7 @@ void AFPSCharacter::Raycast()
 					ImpactParticles,
 					BeamEnd);
 			}
-			
+
 			UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
 				GetWorld(),
 				BeamParticles,
